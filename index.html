@@ -1,0 +1,2910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGPI-SEDAPAL | Gestión de Proyectos de I+D+i (GDIPR0088 Rev.01 / INN15A-P4)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  :root {
+    --sedapal-dark: #0f294a;
+    --sedapal-blue: #005691;
+    --sedapal-light: #0088cc;
+    --sedapal-accent: #00a8e8;
+    --bg-main: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body { background-color: var(--bg-main); color: var(--text-dark); display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 280px; background: linear-gradient(180deg, var(--sedapal-dark) 0%, #153e70 100%); color: #fff; display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; box-shadow: 4px 0 12px rgba(0,0,0,0.12); overflow-y: auto; }
+  .brand { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; gap: 12px; }
+  .brand-logo { width: 42px; height: 42px; border-radius: 10px; background: var(--sedapal-accent); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: #fff; box-shadow: 0 3px 8px rgba(0,168,232,0.4); }
+  .brand-text h2 { font-size: 15.5px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand-text span { font-size: 11px; color: #93c5fd; display: block; margin-top: 2px; }
+
+  .nav-menu { padding: 12px 10px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .nav-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; padding: 8px 12px 4px; font-weight: 700; }
+  .nav-btn { background: transparent; border: none; color: #cbd5e1; padding: 10px 12px; border-radius: 8px; text-align: left; font-size: 12.8px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
+  .nav-btn i { width: 18px; text-align: center; font-size: 14px; }
+  .nav-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .nav-btn.active { background: var(--sedapal-accent); color: #fff; font-weight: 600; box-shadow: 0 4px 10px rgba(0,168,232,0.35); }
+
+  .excel-box { margin: 8px 10px; padding: 12px; background: rgba(255,255,255,0.08); border: 1px dashed rgba(147,197,253,0.5); border-radius: 10px; }
+  .excel-box h4 { font-size: 11.5px; color: #fff; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .excel-box p { font-size: 10.5px; color: #cbd5e1; line-height: 1.35; margin-bottom: 8px; }
+  .btn-excel-sync { width: 100%; background: #10b981; color: #fff; border: none; padding: 8px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+  .btn-excel-sync:hover { background: #059669; }
+
+  .sidebar-footer { padding: 12px 16px; background: rgba(0,0,0,0.25); border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: #cbd5e1; }
+  .badge-fonafe { background: rgba(16,185,129,0.2); border: 1px solid #10b981; color: #6ee7b7; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 10px; display: inline-block; margin-bottom: 4px; }
+
+  /* Main Content */
+  .main-content { margin-left: 280px; flex: 1; display: flex; flex-direction: column; width: calc(100% - 280px); }
+  .topbar { background: #fff; height: 66px; padding: 0 26px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 90; }
+  .topbar-title h1 { font-size: 16.5px; color: var(--sedapal-dark); font-weight: 700; }
+  .topbar-title p { font-size: 11.5px; color: var(--text-muted); }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .status-pill { background: #fef3c7; color: #92400e; font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; border: 1px solid #fde68a; }
+  .status-pill.synced { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .user-chip { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--sedapal-dark); }
+
+  /* Process Stepper Bar (GDIPR0088) */
+  .peva-bar { background: #fff; border-bottom: 1px solid var(--border); padding: 10px 26px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .peva-step { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; color: var(--text-muted); padding: 5px 10px; border-radius: 6px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.15s; }
+  .peva-step:hover { border-color: var(--sedapal-accent); color: var(--sedapal-blue); background: #eff6ff; }
+  .peva-step span.step-tag { background: var(--sedapal-dark); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+
+  .container { padding: 20px 26px; }
+  .view-section { display: none; animation: fadeIn 0.2s ease; }
+  .view-section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+  .empty-banner { background: linear-gradient(90deg, #eff6ff 0%, #e0f2fe 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 18px 22px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .empty-banner.hidden { display: none; }
+
+  /* KPI Cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+  .kpi-card { background: #fff; border-radius: 12px; padding: 15px 16px; border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.03); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.15s; }
+  .kpi-card.active-filter { outline: 2.5px solid var(--sedapal-blue); background: #f0f9ff; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,86,145,0.14); }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--sedapal-blue); }
+  .kpi-card.green::before { background: var(--success); }
+  .kpi-card.amber::before { background: var(--warning); }
+  .kpi-card.cyan::before { background: var(--sedapal-accent); }
+  .kpi-card.red::before { background: var(--danger); }
+  .kpi-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-val { font-size: 26px; font-weight: 800; color: var(--sedapal-dark); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Charts Row */
+  .charts-row { display: grid; grid-template-columns: 1fr 1.15fr 1.15fr; gap: 16px; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 18px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); margin-bottom: 18px; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 10px; }
+  .card-title { font-size: 14.5px; font-weight: 700; color: var(--sedapal-dark); display: flex; align-items: center; gap: 8px; }
+  .card-badge { font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+
+  .explain-box { background: #f8fafc; border-left: 3px solid var(--sedapal-light); padding: 8px 10px; font-size: 11.5px; color: #334155; border-radius: 0 6px 6px 0; margin-top: 8px; line-height: 1.4; }
+
+  /* Tables & Controls */
+  .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .input-ctrl, .select-ctrl { padding: 7px 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; color: var(--text-dark); background: #fff; outline: none; }
+  .input-ctrl:focus, .select-ctrl:focus { border-color: var(--sedapal-accent); box-shadow: 0 0 0 2px rgba(0,168,232,0.15); }
+  .btn-primary { background: var(--sedapal-blue); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s; }
+  .btn-primary:hover { background: var(--sedapal-dark); }
+  .btn-success { background: #10b981; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s; }
+  .btn-success:hover { background: #059669; }
+  .btn-outline { background: #fff; color: var(--sedapal-blue); border: 1px solid var(--sedapal-blue); padding: 7px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.15s; }
+  .btn-outline:hover, .btn-outline.active { background: var(--sedapal-blue); color: #fff; }
+  .btn-danger-sm { background: #ef4444; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+
+  .table-wrap { overflow-x: auto; max-height: 580px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #f1f5f9; color: var(--sedapal-dark); font-weight: 700; text-align: left; padding: 10px 10px; border-bottom: 2px solid #cbd5e1; white-space: nowrap; position: sticky; top: 0; z-index: 10; cursor: pointer; user-select: none; }
+  th:hover { background: #e2e8f0; }
+  td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+  tr:hover td { background-color: #f8fafc; }
+  tr.selected-row td { background-color: #e0f2fe !important; border-top: 1px solid #38bdf8; border-bottom: 1px solid #38bdf8; }
+
+  .num-badge { background: var(--sedapal-dark); color: #fff; font-weight: 700; font-size: 11px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; }
+  .badge-status { padding: 4px 9px; border-radius: 12px; font-size: 10.5px; font-weight: 700; display: inline-block; white-space: nowrap; }
+  .st-escalado { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .st-culminado { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .st-proceso { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .st-riesgo { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+  .score-pill { font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px; white-space: nowrap; }
+  .sc-high { background: #dcfce7; color: #15803d; }
+  .sc-med { background: #e0f2fe; color: #0369a1; }
+
+  .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+  .progress-fill { height: 100%; background: var(--sedapal-light); border-radius: 6px; transition: width 0.3s ease; }
+
+  .calc-grid { display: grid; grid-template-columns: 1.12fr 1.88fr; gap: 18px; margin-bottom: 18px; }
+  .slider-row { margin-bottom: 10px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .slider-ctrl { width: 100%; accent-color: var(--sedapal-blue); cursor: pointer; }
+
+  /* Subcriteria Quick Matrix Grid */
+  .sub-grid-9 { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: 8px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
+  .sub-item-box { display: flex; flex-direction: column; gap: 3px; }
+  .sub-item-box label { font-size: 10px; font-weight: 700; color: var(--sedapal-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub-item-box select, .sub-item-box input { padding: 4px 6px; font-size: 11.5px; font-weight: 700; border: 1px solid #94a3b8; border-radius: 6px; text-align: center; background: #fffbeb; color: var(--sedapal-dark); }
+
+/* Pastilla compacta con hover flotante de 9 subcriterios */
+  .subcriteria-popover-wrap { position: relative; display: inline-block; }
+  .subcriteria-badge-btn { background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.15s; }
+  .subcriteria-badge-btn:hover { background: #dcfce7; }
+  .subcriteria-tooltip { display: none; position: absolute; z-index: 1000; bottom: 125%; left: 50%; transform: translateX(-50%); background: #0f294a; color: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); min-width: 260px; pointer-events: none; }
+  .subcriteria-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: #0f294a transparent transparent transparent; }
+  .subcriteria-popover-wrap:hover .subcriteria-tooltip { display: block; }
+  .sub-tt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 10.5px; margin-top: 4px; }
+  .sub-tt-item { background: rgba(255,255,255,0.12); padding: 3px 5px; border-radius: 4px; text-align: center; }
+
+  /* ==================== GANTT PRO 360 STYLES ==================== */
+  .gantt-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .gantt-grid-q { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; min-width: 440px; position: relative; }
+  .gantt-grid-m { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; min-width: 540px; position: relative; }
+  .gantt-cell { height: 26px; background: #f8fafc; border-radius: 4px; position: relative; border: 1px solid #e2e8f0; overflow: hidden; }
+  .gantt-cell.current-period { border: 1.5px solid #ef4444; background: #fff5f5; }
+  .gantt-bar { height: 100%; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9.5px; color: #fff; font-weight: 700; position: relative; overflow: hidden; }
+  .gantt-bar-progress { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0,0,0,0.22); pointer-events: none; }
+
+  .timeline-track { width: 100%; min-width: 460px; height: 26px; background: #f1f5f9; border-radius: 6px; border: 1px solid #cbd5e1; position: relative; overflow: hidden; }
+  .timeline-span { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; background: #cbd5e1; overflow: hidden; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .timeline-fill { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; font-size: 9px; font-weight: 800; color: #fff; transition: width 0.25s; }
+  .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 5; }
+  .today-tag { position: absolute; top: -2px; transform: translateX(-50%); background: #ef4444; color: #fff; font-size: 8.5px; font-weight: 700; padding: 1px 4px; border-radius: 3px; }
+
+  .date-input-gantt { border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 6px; font-size: 11px; color: var(--text-dark); background: #fffbeb; width: 112px; font-weight: 600; }
+  .route-pill { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 700; display: inline-block; margin-top: 3px; }
+  .rt-piloto { background: #e0f2fe; color: #0369a1; }
+  .rt-nueva { background: #fef3c7; color: #b45309; }
+  .rt-inv { background: #ede9fe; color: #6d28d9; }
+
+  /* Decision Tree Cards */
+  .route-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 12px; }
+  .route-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #f8fafc; }
+  .route-card h4 { font-size: 13px; color: var(--sedapal-dark); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .route-card p { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+
+  /* Modal Ficha Técnica & Anexo 02 */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15,41,74,0.65); z-index: 999; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  
+  .modal-box { background: #fff; border-radius: 14px; max-width: 1240px; width: 96%; max-height: 92vh; overflow-y: auto; overflow-x: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid var(--border); }
+  #rubrica-modal .route-card { min-width: 0; }
+  #rubrica-modal .select-ctrl { min-width: 0; width: 100%; text-overflow: ellipsis; }
+  .modal-head { background: var(--sedapal-dark); color: #fff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; border-radius: 14px 14px 0 0; }
+  .modal-body { padding: 20px 22px; }
+  .modal-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+  .form-label { font-size: 11.5px; font-weight: 700; color: var(--sedapal-dark); margin-bottom: 4px; display: block; text-transform: uppercase; }
+  .textarea-ctrl { width: 100%; min-height: 110px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12.5px; font-family: inherit; resize: vertical; background: #fffbeb; }
+
+  .selected-target-banner { background: linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%); border: 1px solid #60a5fa; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  @media print {
+    .sidebar, .topbar, .peva-bar, .filter-group, .empty-banner { display: none !important; }
+    .main-content { margin-left: 0 !important; width: 100% !important; }
+    .table-wrap { max-height: none !important; overflow: visible !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo"><i class="fa-solid fa-droplet"></i></div>
+    <div class="brand-text">
+      <h2>SGPI - SEDAPAL</h2>
+      <span>GDIPR0088 Rev.01 | INN15A-P4</span>
+    </div>
+  </div>
+
+  <div class="nav-menu">
+    <div class="nav-label">Flujo Procedimiento GDIPR0088</div>
+    <button class="nav-btn active" onclick="switchTab('tab-dashboard', this)">
+      <i class="fa-solid fa-chart-pie"></i> 1. Cuadro de Mando (KPIs)
+    </button>
+    <button class="nav-btn" onclick="switchTab('tab-seleccion', this)">
+      <i class="fa-solid fa-lightbulb"></i> 2. Registro y Selección (7.1 / 7.2)
+    </button>
+    <button class="nav-btn" onclick="switchTab('tab-priorizacion', this)">
+      <i class="fa-solid fa-ranking-star"></i> 3. Priorización Portafolio (7.3)
+    </button>
+    <button class="nav-btn" onclick="switchTab('tab-gantt', this)">
+      <i class="fa-solid fa-calendar-days"></i> 4. Cronograma y Gantt 360° (7.4)
+    </button>
+    <button class="nav-btn" onclick="switchTab('tab-monitoreo', this)">
+      <i class="fa-solid fa-file-contract"></i> 5. Evaluación y Columna R (7.5/7.6)
+    </button>
+  </div>
+
+  <!-- CONECTOR NUBE SHAREPOINT EIIN -->
+  <div class="excel-box">
+    <h4><i class="fa-solid fa-cloud" style="color:#38bdf8;"></i> Nube SharePoint EIIN</h4>
+    <p>Lectura automática en tiempo real:<br>• Hoja 1: <strong>Portafolio (27 Cols)</strong><br>• Hoja 2: <strong>Iniciativas (19 Cols)</strong><br>• Hoja 3 y 4: <strong>Rúbrica + 4_Diccionario</strong></p>
+    <button class="btn-excel-sync" id="btn-sp-sync" onclick="syncFromSharePoint(true)">
+      <i class="fa-solid fa-rotate"></i> Sincronizar SharePoint
+    </button>
+    <a class="btn-excel-sync" style="margin-top:6px; background:#0284c7; text-decoration:none;" href="https://sedapalcompe.sharepoint.com/:x:/s/EIIN/IQCkOUiXfjzuR627sOarF7VXAfbF0bv5n8175RpKfJPsRsg?e=qQYmuF" target="_blank" rel="noopener">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Excel en SharePoint
+    </a>
+    <button class="btn-excel-sync" style="margin-top:6px; background:rgba(255,255,255,0.14); font-weight:600;" onclick="openCloudConfigModal()">
+      <i class="fa-solid fa-gear"></i> Configurar Enlace / Local
+    </button>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="badge-fonafe"><i class="fa-solid fa-circle-check"></i> GDIPR0088 Rev.01 & Anexo 02 (9 Subcriterios)</div>
+    <div id="sync-status"><strong>Fuente:</strong> Conectando a SharePoint...</div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Sistema de Gestión de Proyectos de I+D+i (Procedimiento GDIPR0088)</h1>
+      <p>Gerencia de Desarrollo e Investigación (GDI) — Equipo de Investigación, Innovación y Normalización (EIIN)</p>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-success" onclick="syncFromSharePoint(true)">
+        <i class="fa-solid fa-cloud-arrow-down"></i> Actualizar desde SharePoint
+      </button>
+      <div class="status-pill" id="top-pill"><i class="fa-solid fa-spinner fa-spin"></i> Conectando con SharePoint...</div>
+      <div class="user-chip"><i class="fa-solid fa-user-shield"></i> Ing. Alfredo Mendoza (EIIN)</div>
+    </div>
+  </header>
+
+  <!-- BARRA TRAZABILIDAD PROCEDIMIENTO GDIPR0088 -->
+  <div class="peva-bar">
+    <div class="peva-step" onclick="switchTab('tab-seleccion', document.querySelectorAll('.nav-btn')[1])">
+      <span class="step-tag">PLANIFICAR 7.1</span> Identificación (GDIFO0038 / Casos 7.7)
+    </div>
+    <i class="fa-solid fa-arrow-right" style="color:#94a3b8; font-size:11px;"></i>
+    <div class="peva-step" onclick="switchTab('tab-seleccion', document.querySelectorAll('.nav-btn')[1])">
+      <span class="step-tag">PLANIFICAR 7.2</span> Clasificación (Piloto / PMV / Investigación)
+    </div>
+    <i class="fa-solid fa-arrow-right" style="color:#94a3b8; font-size:11px;"></i>
+    <div class="peva-step" onclick="switchTab('tab-priorizacion', document.querySelectorAll('.nav-btn')[2])">
+      <span class="step-tag">PLANIFICAR 7.3</span> Priorización (4 Criterios + 9 Subcriterios)
+    </div>
+    <i class="fa-solid fa-arrow-right" style="color:#94a3b8; font-size:11px;"></i>
+    <div class="peva-step" onclick="switchTab('tab-gantt', document.querySelectorAll('.nav-btn')[3])">
+      <span class="step-tag">EJECUTAR 7.4</span> Cronograma / Diagrama de Gantt 360°
+    </div>
+    <i class="fa-solid fa-arrow-right" style="color:#94a3b8; font-size:11px;"></i>
+    <div class="peva-step" onclick="switchTab('tab-monitoreo', document.querySelectorAll('.nav-btn')[4])">
+      <span class="step-tag">VERIFICAR / ACTUAR 7.5-7.6</span> Informes (Anexo 03/04) y Escalamiento
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ==================== TAB 1: CUADRO DE MANDO ==================== -->
+    <section id="tab-dashboard" class="view-section active">
+      <div class="kpi-grid">
+        <div class="kpi-card" onclick="quickFilterDashboard('TODOS')">
+          <div class="kpi-head"><span>Total Proyectos Portafolio</span><i class="fa-solid fa-folder-tree"></i></div>
+          <div class="kpi-val" id="kpi-total">0</div>
+          <div class="kpi-sub">Hoja 1 (Desde Fila 4 — 27 Cols)</div>
+        </div>
+        <div class="kpi-card green" onclick="quickFilterDashboard('Escalado')">
+          <div class="kpi-head"><span>Proyectos Escalados (7.6)</span><i class="fa-solid fa-arrow-up-right-dots"></i></div>
+          <div class="kpi-val" id="kpi-escalados">0</div>
+          <div class="kpi-sub">Adoptados por Área Usuaria / CTPS</div>
+        </div>
+        <div class="kpi-card cyan" onclick="quickFilterDashboard('Culminado')">
+          <div class="kpi-head"><span>Proyectos Culminados (7.5)</span><i class="fa-solid fa-check-double"></i></div>
+          <div class="kpi-val" id="kpi-culminados">0</div>
+          <div class="kpi-sub">Con Informe Anexo 03 / 04 remitido</div>
+        </div>
+        <div class="kpi-card amber" onclick="quickFilterDashboard('En proceso')">
+          <div class="kpi-head"><span>En Ejecución (7.4)</span><i class="fa-solid fa-gears"></i></div>
+          <div class="kpi-val" id="kpi-proceso">0</div>
+          <div class="kpi-sub">Pilotos, Lean Startup, DT o Inv.</div>
+        </div>
+        <div class="kpi-card" onclick="switchTab('tab-seleccion', document.querySelectorAll('.nav-btn')[1])">
+          <div class="kpi-head"><span>Iniciativas / Necesidades (7.1)</span><i class="fa-solid fa-lightbulb"></i></div>
+          <div class="kpi-val" id="kpi-ideas">0</div>
+          <div class="kpi-sub">Hoja 2 (Desde Fila 3 — 19 Cols)</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-chart-donut"></i> 1. Proyectos por Estado Actual</div>
+            <span class="card-badge">Ciclo PEVA</span>
+          </div>
+          <div style="height: 195px; display:flex; align-items:center; justify-content:center;">
+            <canvas id="chartEstado"></canvas>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-calendar-check"></i> 2. Programación por Trimestre</div>
+            <span class="card-badge">Cronograma Portafolio</span>
+          </div>
+          <div style="height: 195px;">
+            <canvas id="chartTrimestre"></canvas>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-star-half-stroke"></i> 3. Promedio 4 Criterios Anexo 02 (0 a 3 pts)</div>
+            <span class="card-badge">Rúbrica GDIPR0088</span>
+          </div>
+          <div style="height: 195px;">
+            <canvas id="chartCriterios"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-table-list"></i> Hoja 1: <code>1_Portafolio_y_Priorizacion</code> (<span id="dash-count-label">0 proyectos</span>)
+          </div>
+          <div class="filter-group">
+            <input type="text" id="dash-search" class="input-ctrl" placeholder="Buscar proyecto, código, líder o Col R..." oninput="renderDashboardTable()">
+            <select id="dash-filter-estado" class="select-ctrl" onchange="renderDashboardTable()">
+              <option value="TODOS">Estado: Todos</option>
+              <option value="Escalado">Escalado</option>
+              <option value="Culminado">Culminado</option>
+              <option value="En proceso">En proceso</option>
+            </select>
+            <select id="dash-filter-lider" class="select-ctrl" onchange="renderDashboardTable()">
+              <option value="TODOS">Líder: Todos</option>
+            </select>
+            <select id="dash-filter-trim" class="select-ctrl" onchange="renderDashboardTable()">
+              <option value="TODOS">Trimestre: Todos</option>
+            </select>
+            <button class="btn-primary" onclick="addNewProjectRow()"><i class="fa-solid fa-plus"></i> Nuevo Proyecto</button>
+            <button class="btn-primary" onclick="resetDashFilters()"><i class="fa-solid fa-rotate-left"></i></button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortDashTable('num')">N°</th>
+                <th onclick="sortDashTable('id')">Código (Col A)</th>
+                <th onclick="sortDashTable('titulo')">Título del Proyecto (Col B)</th>
+                <th onclick="sortDashTable('programacion')">Programación (Col C)</th>
+                <th onclick="sortDashTable('estado')">Estado (Col D)</th>
+                <th onclick="sortDashTable('lider')">Líder Técnico (Col E)</th>
+                <th>Partes Interesadas (Col F)</th>
+                <th>Inicio (Col G)</th>
+                <th>Fin (Col H)</th>
+                <th onclick="sortDashTable('puntaje')">Puntaje (Col N)</th>
+                <th>Prioridad (Col O)</th>
+                <th>Avance (Col P)</th>
+                <th>Decisión Comité (Col Q)</th>
+                <th style="background:#fef3c7;">Situación y Sustento Técnico - Activos de Conocimiento (Col R)</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-top-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: REGISTRO Y SELECCIÓN (7.1 Y 7.2 + ANEXO 02) ==================== -->
+    <section id="tab-seleccion" class="view-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-sitemap"></i> Etapa 7.1 y 7.2: Identificación (GDIFO0038 / Casos 7.7) y Clasificación Metodológica (Anexo N° 01)</div>
+          <button class="btn-outline" onclick="openRubricaModalForSelectedIni()"><i class="fa-solid fa-scale-balanced"></i> Abrir Calculadora y Hoja 3: Rúbrica Oficial Anexo N° 02 (4 Criterios / 9 Subcriterios)</button>
+        </div>
+        <div class="route-grid">
+          <div class="route-card">
+            <h4><i class="fa-solid fa-flask-vial" style="color:#0284c7;"></i> Ruta 1: Validación Tecnológica (7.4.1)</h4>
+            <p><strong>¿Existe tecnología en el mercado?: SÍ.</strong> Se valida mediante <em>Prueba Piloto</em> en condiciones reales (Convenio/Comodato/Carta). Cierra con Informe <strong>Anexo N° 03</strong>.</p>
+          </div>
+          <div class="route-card">
+            <h4><i class="fa-solid fa-cubes" style="color:#f59e0b;"></i> Ruta 2: Desarrollo Nueva Solución (7.4.2)</h4>
+            <p><strong>¿Existe tecnología?: NO.</strong> Desarrollo propio mediante <em>Lean Startup</em> (PMV: Construir-Medir-Aprender) o <em>Design Thinking</em>. Cierra con Informe <strong>Anexo N° 03</strong>.</p>
+          </div>
+          <div class="route-card">
+            <h4><i class="fa-solid fa-microscope" style="color:#10b981;"></i> Ruta 3: Investigación Aplicada (7.4.3)</h4>
+            <p><strong>¿Requiere nuevo conocimiento?: SÍ.</strong> Indagación bajo método científico y validación de hipótesis. Cierra con Informe <strong>Anexo N° 04</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-grid">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-file-signature"></i> Registro y Calculadora de Iniciativa (Hoja 2)</div>
+            <span class="card-badge" id="ini-mode-badge">Modo: Nueva Iniciativa</span>
+          </div>
+
+          <div class="selected-target-banner" id="ini-selected-banner" style="display:none;">
+            <div>
+              <strong style="font-size:12px; color:#1e40af;"><i class="fa-solid fa-pen-to-square"></i> Editando Iniciativa Seleccionada: <span id="ini-selected-label">INI-001</span></strong>
+              <div style="font-size:11px; color:#334155;">Los 9 subcriterios (Cols K–S) están cargados abajo y en la Calculadora Oficial.</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-outline" style="padding:4px 8px; font-size:11px;" onclick="openRubricaModalForSelectedIni()"><i class="fa-solid fa-calculator"></i> Calculadora Rúbrica</button>
+              <button class="btn-outline" style="padding:4px 8px; font-size:11px; border-color:#64748b; color:#475569;" onclick="clearSelectedInitiative()"><i class="fa-solid fa-plus"></i> Limpiar / Nueva</button>
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <input type="text" id="new-ini-title" class="input-ctrl" style="width:100%; margin-bottom:8px;" placeholder="Descripción de la Iniciativa / Necesidad o Problemática...">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+              <input type="text" id="new-ini-prop" class="input-ctrl" placeholder="Proponente / Área Usuaria / Tercero...">
+              <input type="text" id="new-ini-fecha" class="input-ctrl" placeholder="Fecha (DD/MM/AAAA)" value="06/11/2026">
+            </div>
+            <select id="new-ini-ruta" class="select-ctrl" style="width:100%;">
+              <option value="Prueba Piloto (7.4.1)">Ruta 7.2: Validación Tecnológica - Prueba Piloto (GDIFO0038)</option>
+              <option value="Lean Startup PMV (7.4.2.a)">Ruta 7.2: Nueva Solución - Lean Startup PMV</option>
+              <option value="Design Thinking (7.4.2.b)">Ruta 7.2: Nueva Solución - Design Thinking</option>
+              <option value="Investigación Aplicada (7.4.3)">Ruta 7.2: Investigación Aplicada (Método Científico)</option>
+              <option value="Caso Especial Área Usuaria (7.7.a)">Caso Especial 7.7.a: Propuesta Directa Área Usuaria</option>
+              <option value="Caso Especial Tercero (7.7.b)">Caso Especial 7.7.b: Propuesta Externa / Aliado</option>
+            </select>
+          </div>
+
+          <!-- MATRIZ RÁPIDA DE LOS 9 SUBCRITERIOS (COLUMNAS K A S DE HOJA 2) -->
+          <div style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:11px; font-weight:700; color:var(--sedapal-dark); text-transform:uppercase;">
+                <i class="fa-solid fa-sliders"></i> 9 Subcriterios Anexo N° 02 (Columnas K a S en Excel — Escala 0 a 3):
+              </span>
+              <button class="btn-outline" style="padding:3px 8px; font-size:10.5px;" onclick="openRubricaModalForSelectedIni()">
+                <i class="fa-solid fa-up-right-from-square"></i> Ver Detalle Rúbrica
+              </button>
+            </div>
+            <div class="sub-grid-9">
+              <div class="sub-item-box"><label title="1.1 Beneficio al usuario (10%)">1.1 (10%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s11" value="2.8" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="1.2 Sostenibilidad y ambiente (10%)">1.2 (10%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s12" value="2.8" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="2.1 Alineación PEI/POI (20%)">2.1 (20%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s21" value="3.0" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="3.1 Creatividad (10%)">3.1 (10%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s31" value="2.8" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="3.2 Originalidad (5%)">3.2 (5%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s32" value="2.7" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="3.3 Pertinencia (5%)">3.3 (5%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s33" value="2.7" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="4.1 Eficiencia operativa (10%)">4.1 (10%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s41" value="2.9" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="4.2 Tiempo Retorno TRI (10%)">4.2 (10%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s42" value="2.8" oninput="recalcFromIniSubcriteria()"></div>
+              <div class="sub-item-box"><label title="4.3 Ahorro Anual Neto (20%)">4.3 (20%)</label><input type="number" min="0" max="3" step="0.1" id="ini-s43" value="2.85" oninput="recalcFromIniSubcriteria()"></div>
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label"><span>C1: Impacto Social y Ambiental (20%) [0–3 pts]</span><span id="val-c1">2.80</span></div>
+            <input type="range" min="0" max="3" step="0.01" value="2.80" class="slider-ctrl" id="sl-c1" oninput="recalcSimFromSliders()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>C2: Alineación Estratégica PEI/POI (20%) [0–3 pts]</span><span id="val-c2">3.00</span></div>
+            <input type="range" min="0" max="3" step="0.01" value="3.00" class="slider-ctrl" id="sl-c2" oninput="recalcSimFromSliders()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>C3: Innovación (Creativ./Orig./Pertin.) (20%) [0–3 pts]</span><span id="val-c3">2.75</span></div>
+            <input type="range" min="0" max="3" step="0.01" value="2.75" class="slider-ctrl" id="sl-c3" oninput="recalcSimFromSliders()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>C4: Impacto Operativo y Económico (40%) [0–3 pts]</span><span id="val-c4">2.85</span></div>
+            <input type="range" min="0" max="3" step="0.01" value="2.85" class="slider-ctrl" id="sl-c4" oninput="recalcSimFromSliders()">
+          </div>
+          <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #cbd5e1; display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">PUNTAJE SELECCIÓN (ANEXO 02)</div>
+              <div id="sim-score" style="font-size:22px; font-weight:800; color:var(--sedapal-blue);">95.0 / 100</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-success" id="btn-update-ini" style="display:none;" onclick="saveSelectedInitiativeChanges()"><i class="fa-solid fa-floppy-disk"></i> Guardar en Iniciativa</button>
+              <button class="btn-primary" onclick="addInitiative()"><i class="fa-solid fa-plus"></i> Registrar en Hoja 2</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-list-check"></i> Hoja 2: <code>2_Seleccion_Iniciativas_P1_P4</code> (Desde Fila 3 — <span id="ini-count-label">0</span> registros)</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn-outline" style="padding:4px 9px; font-size:11px;" onclick="toggleSubcriteriaCol()">
+                <i class="fa-solid fa-eye" id="btn-icon-sub-ini"></i> <span id="btn-txt-sub-ini">Mostrar 9 Subcriterios</span>
+              </button>
+              <span class="card-badge">19 Columnas Exactas</span>
+            </div>
+          </div>
+          <div class="explain-box" style="margin-top:0; margin-bottom:10px;">
+            <i class="fa-solid fa-hand-pointer"></i> <strong>Haz clic en cualquier fila</strong> para cargar automáticamente sus valores y sus <strong>9 subcriterios (1.1 a 4.3)</strong> en el panel izquierdo y en la Calculadora Oficial Anexo N° 02.
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID (Col A)</th>
+                  <th>Descripción de la Iniciativa (Col B)</th>
+                  <th>Proponente (Col C)</th>
+                  <th>Fecha (Col D)</th>
+                  <th>C1 (20%)</th>
+                  <th>C2 (20%)</th>
+                  <th>C3 (20%)</th>
+                  <th>C4 (40%)</th>
+                  <th>Subcriterios (Cols K–S: 1.1 a 4.3)</th>
+                  <th>Puntaje (Col I)</th>
+                  <th>Dictamen (Col J)</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="table-iniciativas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: MATRIZ DE PRIORIZACIÓN (7.3) ==================== -->
+    <section id="tab-priorizacion" class="view-section">
+      <!-- PANEL INTERACTIVO DE EVALUACIÓN DE SUBCRITERIOS PARA EL PROYECTO SELECCIONADO -->
+      <div class="card" style="border-left: 4px solid var(--sedapal-blue);">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-calculator"></i> Calculadora de Subcriterios en Vivo — Proyecto Seleccionado (Hoja 1: Columnas S a AA)
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="card-badge" id="prio-selected-badge">Selecciona un proyecto de la tabla inferior</span>
+            <button class="btn-outline" onclick="openRubricaModalForSelectedProject()">
+              <i class="fa-solid fa-scale-balanced"></i> Abrir Calculadora Completa Anexo N° 02
+            </button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1.3fr 2fr auto; gap:14px; align-items:center;">
+          <div>
+            <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Proyecto Activo para Calificación:</div>
+            <div id="prio-sel-title" style="font-size:13.5px; font-weight:800; color:var(--sedapal-dark); margin-top:2px;">Haz clic en cualquier fila de proyecto abajo...</div>
+            <div id="prio-sel-c1234" style="font-size:11.5px; color:#0369a1; font-weight:700; margin-top:4px;">C1: -- | C2: -- | C3: -- | C4: --</div>
+          </div>
+          <div class="sub-grid-9" style="margin-top:0;">
+            <div class="sub-item-box"><label title="Col S: 1.1 Beneficio al usuario (10%)">1.1 (10%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s11" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col T: 1.2 Sostenibilidad y ambiente (10%)">1.2 (10%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s12" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col U: 2.1 Alineación PEI/POI (20%)">2.1 (20%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s21" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col V: 3.1 Creatividad (10%)">3.1 (10%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s31" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col W: 3.2 Originalidad (5%)">3.2 (5%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s32" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col X: 3.3 Pertinencia (5%)">3.3 (5%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s33" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col Y: 4.1 Eficiencia operativa (10%)">4.1 (10%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s41" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col Z: 4.2 Tiempo Retorno TRI (10%)">4.2 (10%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s42" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+            <div class="sub-item-box"><label title="Col AA: 4.3 Ahorro Anual Neto (20%)">4.3 (20%)</label><input type="number" min="0" max="3" step="0.1" id="prj-s43" value="3" oninput="updateSelectedProjectFromSubInputs()"></div>
+          </div>
+          <div style="text-align:right; background:#eff6ff; padding:10px 14px; border-radius:8px; border:1px solid #bfdbfe;">
+            <div style="font-size:10px; font-weight:700; color:#1e40af;">PUNTAJE (COL N)</div>
+            <div id="prio-sel-score" style="font-size:20px; font-weight:800; color:var(--sedapal-dark);">-- / 100</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-ranking-star"></i> Etapa 7.3: Matriz de Priorización del Portafolio — 4 Criterios y 9 Subcriterios Anexo N° 02 (<span id="prio-count-label">0 proyectos</span>)
+          </div>
+          <div class="filter-group">
+            <button class="btn-outline" style="padding:6px 11px; font-size:11.5px;" onclick="toggleSubcriteriaCol()">
+              <i class="fa-solid fa-eye" id="btn-icon-sub-prio"></i> <span id="btn-txt-sub-prio">Mostrar 9 Subcriterios</span>
+            </button>
+            <input type="text" id="prio-search" class="input-ctrl" placeholder="Filtrar proyecto o líder..." oninput="renderPriorizacion()">
+            <select id="prio-filter-estado" class="select-ctrl" onchange="renderPriorizacion()">
+              <option value="TODOS">Todos los Estados</option>
+              <option value="En proceso">En proceso</option>
+              <option value="Culminado">Culminado</option>
+              <option value="Escalado">Escalado</option>
+            </select>
+            <select id="prio-sort-by" class="select-ctrl" onchange="renderPriorizacion()">
+              <option value="puntaje_desc">Ordenar por: Mayor Puntaje (Ranking)</option>
+              <option value="num_asc">Ordenar por: Código (A-Z)</option>
+              <option value="titulo_asc">Ordenar por: Título (A-Z)</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Ranking</th>
+                <th>Código (Col A)</th>
+                <th>Título del Proyecto (Col B)</th>
+                <th>Líder Técnico (Col E)</th>
+                <th>C1 (20%) [Col J]</th>
+                <th>C2 (20%) [Col K]</th>
+                <th>C3 (20%) [Col L]</th>
+                <th>C4 (40%) [Col M]</th>
+                <th>9 Subcriterios (Cols S–AA: 1.1 a 4.3)</th>
+                <th>Puntaje (Col N)</th>
+                <th>Prioridad (Col O)</th>
+                <th>Estado (Col D)</th>
+                <th>Calculadora</th>
+              </tr>
+            </thead>
+            <tbody id="table-priorizacion"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: CRONOGRAMA Y DIAGRAMA DE GANTT 360° (7.4) ==================== -->
+   <!-- ==================== TAB 4: CRONOGRAMA Y DIAGRAMA DE GANTT 360° (7.4) ==================== -->
+    <section id="tab-gantt" class="view-section">
+      <div class="gantt-kpi-row">
+        <div class="kpi-card green" id="g-card-ok" style="padding:12px 15px;" onclick="filterGanttByHealth('ok')" title="Clic para filtrar Culminados / Escalados (clic de nuevo para ver todos)">
+          <div class="kpi-head"><span>Culminados / Escalados (100%)</span><i class="fa-solid fa-circle-check"></i></div>
+          <div class="kpi-val" id="g-kpi-ok" style="font-size:22px;">0</div>
+          <div class="kpi-sub">Hitos cumplidos según Plan de Trabajo</div>
+        </div>
+        <div class="kpi-card cyan" id="g-card-ontime" style="padding:12px 15px;" onclick="filterGanttByHealth('ontime')" title="Clic para filtrar En Ejecución — En Plazo (clic de nuevo para ver todos)">
+          <div class="kpi-head"><span>En Ejecución — En Plazo</span><i class="fa-solid fa-clock"></i></div>
+          <div class="kpi-val" id="g-kpi-ontime" style="font-size:22px;">0</div>
+          <div class="kpi-sub">Avance físico acorde al cronograma</div>
+        </div>
+        <div class="kpi-card amber" id="g-card-warn" style="padding:12px 15px;" onclick="filterGanttByHealth('warn')" title="Clic para filtrar Alerta Preventiva / Por Vencer (clic de nuevo para ver todos)">
+          <div class="kpi-head"><span>Alerta Preventiva / Por Vencer</span><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="kpi-val" id="g-kpi-warn" style="font-size:22px;">0</div>
+          <div class="kpi-sub">Requiere refuerzo de seguimiento EIIN</div>
+        </div>
+        <div class="kpi-card red" id="g-card-late" style="padding:12px 15px;" onclick="filterGanttByHealth('late')" title="Clic para filtrar Plazo Vencido / Reprogramar (clic de nuevo para ver todos)">
+          <div class="kpi-head"><span>Plazo Vencido / Reprogramar</span><i class="fa-solid fa-calendar-xmark"></i></div>
+          <div class="kpi-val" id="g-kpi-late" style="font-size:22px;">0</div>
+          <div class="kpi-sub">Fecha Fin superada con avance &lt; 100%</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-calendar-days"></i> Etapa 7.4: Cronograma Interactivo y Diagrama de Gantt (<span id="gantt-count-label">0 proyectos</span>)
+          </div>
+          <div class="filter-group">
+            <div style="display:flex; gap:4px; background:#f1f5f9; padding:3px; border-radius:8px;">
+              <button class="btn-outline active" id="btn-mode-q" onclick="setGanttScale('trimestral')">Trimestral (25-26)</button>
+              <button class="btn-outline" id="btn-mode-m" onclick="setGanttScale('mensual')">Mensual (2026)</button>
+              <button class="btn-outline" id="btn-mode-c" onclick="setGanttScale('continuo')">Barra Progreso Real</button>
+            </div>
+            <input type="text" id="gantt-search" class="input-ctrl" placeholder="Buscar proyecto o líder..." oninput="renderGantt()">
+            <select id="gantt-ruta" class="select-ctrl" onchange="renderGantt()">
+              <option value="TODOS">Ruta GDIPR0088: Todas</option>
+              <option value="Piloto">7.4.1 Prueba Piloto</option>
+              <option value="Nueva">7.4.2 Lean Startup / DT (Gemelos/Apps)</option>
+              <option value="Investigación">7.4.3 Investigación Aplicada</option>
+            </select>
+            <select id="gantt-estado" class="select-ctrl" onchange="renderGantt()">
+              <option value="TODOS">Estado: Todos</option>
+              <option value="En proceso">En proceso</option>
+              <option value="Culminado">Culminado</option>
+              <option value="Escalado">Escalado</option>
+            </select>
+            <select id="gantt-health" class="select-ctrl" onchange="syncGanttHealthDropdown(this.value)">
+              <option value="TODOS">Salud Plazo: Todos</option>
+              <option value="ok">Cumplidos / Escalados (100%)</option>
+              <option value="ontime">En Ejecución — En Plazo</option>
+              <option value="warn">Alerta Preventiva / En Riesgo</option>
+              <option value="late">Plazo Vencido / Reprogramar</option>
+            </select>
+            <button class="btn-primary" onclick="resetGanttFilters()" title="Limpiar filtros del Gantt"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="btn-primary" onclick="window.print()" title="Imprimir o guardar PDF del Cronograma Gantt"><i class="fa-solid fa-print"></i> Imprimir Gantt</button>
+          </div>
+        </div>
+        <div class="explain-box" style="margin-bottom:12px;">
+          <i class="fa-solid fa-bolt"></i> <strong>Gantt 100% Interactivo:</strong> Haz clic en las <strong>4 tarjetas superiores</strong> para filtrar por salud de plazo, o modifica las fechas y la barra de <strong>% Avance Físico (Col P)</strong>. Al cambiar la Fecha Fin, el sistema actualiza automáticamente el trimestre en la columna <strong>Programación (Col C)</strong> y recalcula el semáforo.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Código</th>
+                <th>Proyecto y Ruta Metodológica (7.4)</th>
+                <th>Líder Técnico</th>
+                <th>Inicio (Col G)</th>
+                <th>Fin (Col H)</th>
+                <th>Control % Avance (Col P)</th>
+                <th>Salud Plazo</th>
+                <th id="gantt-timeline-header">Línea de Tiempo Dinámica (2025 - 2026)</th>
+              </tr>
+            </thead>
+            <tbody id="table-gantt"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: MONITOREO Y COLUMNA R (7.5 Y 7.6) ==================== -->
+    <section id="tab-monitoreo" class="view-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-file-contract"></i> Etapas 7.5 y 7.6: Evaluación, Decisión (Col Q) y Columna R: Sustento Técnico / Activos de Conocimiento (<span id="mon-count-label">0 proyectos</span>)
+          </div>
+          <div class="filter-group">
+            <input type="text" id="mon-search" class="input-ctrl" placeholder="Buscar proyecto, informe o sustento en Col R..." oninput="renderMonitoreo()">
+            <select id="mon-estado" class="select-ctrl" onchange="renderMonitoreo()">
+              <option value="TODOS">Todos los Estados</option>
+              <option value="Escalado">Escalado</option>
+              <option value="Culminado">Culminado</option>
+              <option value="En proceso">En proceso</option>
+            </select>
+          </div>
+        </div>
+        <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">
+          <i class="fa-solid fa-pen-to-square"></i> <strong>Edición directa o ampliada de la Columna R:</strong> Edita directamente en las celdas amarillas o presiona <strong>"Ficha / Editar Col R"</strong> para abrir el editor ejecutivo completo y descargar los informes según el <strong>Anexo N° 03</strong> o <strong>Anexo N° 04</strong> del procedimiento GDIPR0088.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Código (Col A)</th>
+                <th>Título del Proyecto (Col B)</th>
+                <th>Líder y Partes Interesadas (Cols E y F)</th>
+                <th>% Avance (Col P)</th>
+                <th>Estado (Col D)</th>
+                <th>Decisión Comité (Columna Q)</th>
+                <th style="min-width:320px; background:#fef3c7;">Situación y Sustento Técnico - Activos de Conocimiento (Columna R)</th>
+                <th>Ficha e Informes GDIPR0088</th>
+              </tr>
+            </thead>
+            <tbody id="table-monitoreo"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ==================== MODAL 1: EDITOR EJECUTIVO DE PROYECTO (COLUMNA R + ANEXOS 03/04) ==================== -->
+<div class="modal-overlay" id="project-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="mod-title" style="font-size:15px;">Ficha Técnica del Proyecto e Informe GDIPR0088</h3>
+        <span id="mod-sub" style="font-size:11.5px; color:#93c5fd;">Edición sincronizada con las 27 columnas (A–AA) del Excel</span>
+      </div>
+      <button class="modal-close" onclick="closeProjectModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mod-num">
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+        <div>
+          <label class="form-label">Estado Actual (Columna D)</label>
+          <select id="mod-estado" class="select-ctrl" style="width:100%;">
+            <option value="En proceso">En proceso</option>
+            <option value="Culminado">Culminado</option>
+            <option value="Escalado">Escalado</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">% Avance Físico (Columna P)</label>
+          <input type="number" id="mod-avance" min="0" max="100" class="input-ctrl" style="width:100%;">
+        </div>
+        <div>
+          <label class="form-label">Decisión Comité / Etapa (Columna Q)</label>
+          <input type="text" id="mod-decision" class="input-ctrl" style="width:100%;">
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-label">Alineamiento Estratégico PEI / POI (Columna I)</label>
+        <input type="text" id="mod-alin" class="input-ctrl" style="width:100%;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Columna R: Situación y Sustento Técnico (Activos de Conocimiento / Informes EIIN / CTPS)</label>
+        <textarea id="mod-cols" class="textarea-ctrl" placeholder="Detalle el informe técnico emitido, resultados de la evaluación económica, acuerdo de CTPS o estado de escalamiento..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid var(--border); padding-top:14px;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn-outline" onclick="downloadAnexoFromModal('03')"><i class="fa-solid fa-file-word"></i> Descargar Informe Anexo N° 03</button>
+          <button class="btn-outline" onclick="downloadAnexoFromModal('04')"><i class="fa-solid fa-microscope"></i> Descargar Informe Anexo N° 04</button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-primary" onclick="saveProjectModal()"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios en el Portafolio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL 2: CALCULADORA OFICIAL Y HOJA 3: RÚBRICA ANEXO N° 02 (GDIPR0088) ==================== -->
+<div class="modal-overlay" id="rubrica-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 style="font-size:15px;"><i class="fa-solid fa-scale-balanced"></i> Calculadora Interactiva Anexo N° 02 (9 Subcriterios) & Hoja 3 (<code>3_Config_Anexo02_Rubrica</code>)</h3>
+        <span id="rub-modal-target-label" style="font-size:11.5px; color:#93c5fd;">Califica de 0 a 3 puntos cada subcriterio para actualizar C1 (20%), C2 (20%), C3 (20%) y C4 (40%)</span>
+      </div>
+      <button class="modal-close" onclick="closeRubricaModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
+        <div class="route-card">
+          <h4>1. C1: Impacto Social y Ambiental (Peso Total: 20%)</h4>
+          <label class="form-label" style="margin-top:6px;">1.1 Beneficio al usuario (Peso 10%)</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="rub-11" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('11')">
+              <option value="3">3 pts: Genera beneficio significativo y sostenible</option>
+              <option value="2">2 pts: Mejora claramente satisfacción, atención o calidad</option>
+              <option value="1">1 pt: Beneficio indirecto o limitado</option>
+              <option value="0">0 pts: Sin beneficio tangible al usuario</option>
+            </select>
+            <input type="number" id="rub-num-11" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+          <label class="form-label" style="margin-top:8px;">1.2 Sostenibilidad y ambiente (Peso 10%)</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="rub-12" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('12')">
+              <option value="3">3 pts: Logra mejoras medibles en sostenibilidad</option>
+              <option value="2">2 pts: Evidencia contribución ambiental</option>
+              <option value="1">1 pt: Aporte marginal o no cuantificable</option>
+              <option value="0">0 pts: No aporta a la sostenibilidad ambiental</option>
+            </select>
+            <input type="number" id="rub-num-12" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+        </div>
+
+        <div class="route-card">
+          <h4>2. C2: Alineación Estratégica (Peso Total: 20%)</h4>
+          <label class="form-label" style="margin-top:6px;">2.1 Relación con PEI, POI o planes específicos (Peso 20%)</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="rub-21" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('21')">
+              <option value="3">3 pts: Contribuye directamente al cumplimiento de metas PEI/POI</option>
+              <option value="2">2 pts: Tiene relación clara con uno o más objetivos estratégicos</option>
+              <option value="1">1 pt: Relación parcial o indirecta con objetivos institucionales</option>
+              <option value="0">0 pts: Sin relación con objetivos ni planes institucionales</option>
+            </select>
+            <input type="number" id="rub-num-21" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+          <div class="explain-box" style="margin-top:14px;">
+            <strong>Cálculo Directo (Escala 0.00 a 3.00):</strong><br>
+            • <strong>C1</strong> = (Sub 1.1 × 0.10 + Sub 1.2 × 0.10) / 0.20<br>
+            • <strong>C2</strong> = Sub 2.1 (Directo 20%)
+          </div>
+        </div>
+
+        <div class="route-card">
+          <h4>3. C3: Innovación (Peso Total: 20%)</h4>
+          <label class="form-label" style="margin-top:6px;">3.1 Creatividad (10%) / 3.2 Originalidad (5%) / 3.3 Pertinencia (5%)</label>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+            <select id="rub-31" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('31')">
+              <option value="3">3.1 Creatividad (3 pts): Enfoque altamente creativo o disruptivo</option>
+              <option value="2">3.1 Creatividad (2 pts): Introduce nuevos métodos o ideas relevantes</option>
+              <option value="1">3.1 Creatividad (1 pt): Incorpora elementos creativos menores</option>
+              <option value="0">3.1 Creatividad (0 pts): Reproduce prácticas existentes</option>
+            </select>
+            <input type="number" id="rub-num-31" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+            <select id="rub-32" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('32')">
+              <option value="3">3.2 Originalidad (3 pts): Solución inédita o pionera en el sector</option>
+              <option value="2">3.2 Originalidad (2 pts): Solución nueva en SEDAPAL</option>
+              <option value="1">3.2 Originalidad (1 pt): Modifica o combina elementos existentes</option>
+              <option value="0">3.2 Originalidad (0 pts): Solución común o ya aplicada</option>
+            </select>
+            <input type="number" id="rub-num-32" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="rub-33" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('33')">
+              <option value="3">3.3 Pertinencia (3 pts): Resuelve necesidad prioritaria con sustento</option>
+              <option value="2">3.3 Pertinencia (2 pts): Responde claramente a necesidad actual</option>
+              <option value="1">3.3 Pertinencia (1 pt): Parcialmente vinculada a problema real</option>
+              <option value="0">3.3 Pertinencia (0 pts): No responde a necesidad identificada</option>
+            </select>
+            <input type="number" id="rub-num-33" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+        </div>
+
+        <div class="route-card">
+          <h4>4. C4: Impacto Operativo y Económico (Peso Total: 40%)</h4>
+          <label class="form-label" style="margin-top:6px;">4.1 Eficiencia operativa (10%)</label>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+            <select id="rub-41" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('41')">
+              <option value="3">3 pts: Genera mejoras sustanciales en procesos críticos</option>
+              <option value="2">2 pts: Optimiza recursos o tiempos de manera relevante</option>
+              <option value="1">1 pt: Mejora menor o localizada</option>
+              <option value="0">0 pts: No genera mejora operativa</option>
+            </select>
+            <input type="number" id="rub-num-41" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+          <label class="form-label">4.2 Tiempo Retorno Inversión - TRI (10%)</label>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+            <select id="rub-42" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('42')">
+              <option value="3">3 pts: TRI &le; 2 años (o menor costo periódico)</option>
+              <option value="2">2 pts: 2 años &lt; TRI &le; 3 años</option>
+              <option value="1">1 pt: 3 años &lt; TRI &le; 4 años</option>
+              <option value="0">0 pts: TRI &gt; 4 años</option>
+            </select>
+            <input type="number" id="rub-num-42" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+          <label class="form-label">4.3 Ahorro o Beneficio Anual Neto (20%)</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="rub-43" class="select-ctrl" style="flex:1;" onchange="syncRubSelectToInput('43')">
+              <option value="3">3 pts: Ahorro anual neto &ge; S/ 500,000</option>
+              <option value="2">2 pts: S/ 100,000 &le; Ahorro &lt; S/ 500,000</option>
+              <option value="1">1 pt: S/ 50,000 &le; Ahorro &lt; S/ 100,000</option>
+              <option value="0">0 pts: Ahorro &lt; S/ 50,000 o sin beneficio cuantificable</option>
+            </select>
+            <input type="number" id="rub-num-43" min="0" max="3" step="0.05" class="input-ctrl" style="width:70px; font-weight:700; text-align:center; background:#fffbeb;" value="3" oninput="calcRubricaAnexo02()">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; background:#eff6ff; padding:12px 16px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <strong style="color:var(--sedapal-dark); font-size:13.5px;">Puntaje Ponderado Anexo N° 02: <span id="rub-total-badge">100.0 / 100 pts</span></strong>
+          <div id="rub-c1234-preview" style="font-size:11.5px; color:#0369a1; font-weight:600; margin-top:2px;">C1: 3.00 | C2: 3.00 | C3: 3.00 | C4: 3.00 (Escala Oficial 0 a 3 pts)</div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="applyRubricaToTarget()"><i class="fa-solid fa-check"></i> Aplicar Subcriterios y Puntaje al Registro Activo</button>
+        </div>
+      </div>
+
+      <!-- Vista de la Hoja 3 cargada desde el Excel -->
+      <div style="margin-top:16px;">
+        <h4 style="font-size:12.5px; color:var(--sedapal-dark); margin-bottom:8px;"><i class="fa-solid fa-table"></i> Vista Sincronizada de Hoja 3: <code>3_Config_Anexo02_Rubrica</code></h4>
+        <div class="table-wrap" style="max-height:220px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Criterio (Anexo N° 02)</th>
+                <th>Peso Criterio</th>
+                <th>Subcriterio</th>
+                <th>Peso Subcriterio</th>
+                <th>0 Puntos</th>
+                <th>1 Punto</th>
+                <th>2 Puntos</th>
+                <th>3 Puntos</th>
+              </tr>
+            </thead>
+            <tbody id="table-rubrica-sheet3"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==================== MODAL 3: CONFIGURACIÓN CONEXIÓN SHAREPOINT / NETLIFY ==================== -->
+<div class="modal-overlay" id="cloud-config-modal">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-head">
+      <div>
+        <h3 style="font-size:15px;"><i class="fa-solid fa-cloud"></i> Conexión Directa SharePoint (Netlify + Local)</h3>
+        <span style="font-size:11.5px; color:#93c5fd;">Sin SharePoint Premium — Puente Netlify gratuito para leer el Excel en vivo</span>
+      </div>
+      <button class="modal-close" onclick="closeCloudConfigModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="explain-box" style="margin-top:0; margin-bottom:14px;">
+        <strong>¿Cómo funciona?</strong><br>
+        • <strong>En Netlify:</strong> Se conecta automáticamente mediante <code>/.netlify/functions/sharepoint-excel</code>.<br>
+        • <strong>En Local (tu PC):</strong> Pega abajo la URL de tu sitio publicado en Netlify (ej. <code>https://sgpi-sedapal.netlify.app</code>) y el archivo local también leerá en vivo desde SharePoint sin CORS.
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-label">URL del Excel en SharePoint</label>
+        <input type="text" id="cfg-sp-url" class="input-ctrl" style="width:100%;" placeholder="https://sedapalcompe.sharepoint.com/...">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="form-label">URL de tu Servidor Netlify (solo necesaria si abres el HTML en local)</label>
+        <input type="text" id="cfg-netlify-url" class="input-ctrl" style="width:100%;" placeholder="Ej: https://tu-proyecto.netlify.app">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn-outline" onclick="closeCloudConfigModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveCloudConfigAndSync()"><i class="fa-solid fa-floppy-disk"></i> Guardar y Sincronizar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// VARIABLES GLOBALES (SINCRONIZADAS CON LAS 3 HOJAS + 9 COLUMNAS SUBCRITERIOS)
+// ============================================================================
+let showSubcriteriaColumn = false; // Oculto por defecto
+
+function toggleSubcriteriaCol() {
+  showSubcriteriaColumn = !showSubcriteriaColumn;
+  const txt = showSubcriteriaColumn ? "Ocultar 9 Subcriterios" : "Mostrar 9 Subcriterios";
+  const iconClass = showSubcriteriaColumn ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+
+  const bTxtIni = document.getElementById('btn-txt-sub-ini');
+  if (bTxtIni) bTxtIni.innerText = txt;
+  const bIcoIni = document.getElementById('btn-icon-sub-ini');
+  if (bIcoIni) bIcoIni.className = iconClass;
+
+  const bTxtPrio = document.getElementById('btn-txt-sub-prio');
+  if (bTxtPrio) bTxtPrio.innerText = txt;
+  const bIcoPrio = document.getElementById('btn-icon-sub-prio');
+  if (bIcoPrio) bIcoPrio.className = iconClass;
+
+  renderIniciativas();
+  renderPriorizacion();
+}
+
+let PROYECTOS = [];
+let INICIATIVAS = [];
+let ganttScaleMode = 'trimestral';
+
+// Seguimiento de selección activa en ambos paneles (Hoja 1: Proyectos / Hoja 2: Iniciativas)
+let selectedProjectNum = null;
+let selectedIniIdx = null;
+let rubricaContextMode = 'iniciativa'; // 'iniciativa' | 'proyecto'
+
+let SHEET1_TOP_ROWS = [
+  ["SEDAPAL - SISTEMA DE GESTIÓN DEL PORTAFOLIO DE PROYECTOS DE I+D+i (PROCEDIMIENTO GDIPR0088 Rev.01 / INDICADOR FONAFE INN15A - P4)"],
+  ["Matriz Oficial alineada al Anexo N° 02 del Procedimiento GDIPR0088: 4 Criterios y 9 Subcriterios de Priorización (Escala 0 a 3 puntos ponderados sobre 100 pts)"],
+  [""]
+];
+
+// 27 Columnas Exactas (A a AA): 18 base (A-R) + 9 Subcriterios (S-AA)
+let SHEET1_HEADERS = [
+  "Código",
+  "Título del Proyecto de Innovación",
+  "Programación",
+  "Estado",
+  "Líder Técnico",
+  "Partes Interesadas",
+  "Fecha Inicio",
+  "Fecha Fin",
+  "Alineamiento Estratégico",
+  "C1: Impacto Social y Amb. (20%) [0-3]",
+  "C2: Alineación Estratégica (20%) [0-3]",
+  "C3: Innovación (20%) [0-3]",
+  "C4: Impacto Oper. y Econ. (40%) [0-3]",
+  "Puntaje Priorización (0-100)",
+  "Nivel de Prioridad",
+  "% Avance Físico",
+  "Decisión Comité / Etapa",
+  "Situación y Sustento Técnico (Activos de Conocimiento)",
+  "1.1 Beneficio al usuario (10%)",
+  "1.2 Sostenibilidad y ambiente (10%)",
+  "2.1 Relación con PEI, POI (20%)",
+  "3.1 Creatividad (10%)",
+  "3.2 Originalidad (5%)",
+  "3.3 Pertinencia (5%)",
+  "4.1 Eficiencia operativa (10%)",
+  "4.2 Tiempo Retorno TRI (10%)",
+  "4.3 Ahorro o Beneficio Anual (20%)"
+];
+
+let SHEET2_TOP_ROWS = [
+  ["SEDAPAL - MATRIZ DE SELECCIÓN Y PRIORIZACIÓN DE INICIATIVAS DE I+D+i (GDIPR0088 - ANEXO N° 02: 4 CRITERIOS Y 9 SUBCRITERIOS ESCALA 0 A 3)"],
+  [""]
+];
+
+// 19 Columnas Exactas (A a S): 10 base (A-J) + 9 Subcriterios (K-S)
+let SHEET2_HEADERS = [
+  "ID",
+  "Descripción de la Iniciativa de Innovación",
+  "Proponente",
+  "Fecha Registro",
+  "C1: Impacto Social y Amb. (20%) [0-3]",
+  "C2: Alineación Estratégica (20%) [0-3]",
+  "C3: Innovación (20%) [0-3]",
+  "C4: Impacto Oper. y Econ. (40%) [0-3]",
+  "Puntaje Selección (0-100)",
+  "Dictamen Comité de Selección",
+  "1.1 Beneficio al usuario (10%)",
+  "1.2 Sostenibilidad y ambiente (10%)",
+  "2.1 Relación con PEI, POI (20%)",
+  "3.1 Creatividad (10%)",
+  "3.2 Originalidad (5%)",
+  "3.3 Pertinencia (5%)",
+  "4.1 Eficiencia operativa (10%)",
+  "4.2 Tiempo Retorno TRI (10%)",
+  "4.3 Ahorro o Beneficio Anual (20%)"
+];
+
+// Hoja 3: 3_Config_Anexo02_Rubrica
+let SHEET3_ROWS = [
+  ["ANEXO N° 02 (GDIPR0088): CRITERIOS Y RÚBRICA OFICIAL DE PRIORIZACIÓN DE PROYECTOS DE I+D+i", "", "", "", "", "", "", ""],
+  ["Escala de calificación por subcriterio: 0 a 3 puntos. Puntaje Total Ponderado expresado en escala de 0 a 100 puntos.", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["Criterio (Anexo N° 02)", "Peso Criterio", "Subcriterio", "Peso Subcriterio", "0 Puntos", "1 Punto", "2 Puntos", "3 Puntos"],
+  ["C1: Impacto Social y Ambiental", 0.2, "1.1 Beneficio al usuario (calidad, continuidad, accesibilidad)", 0.1, "Sin beneficio tangible al usuario", "Beneficio indirecto o limitado", "Mejora claramente satisfacción, atención o calidad", "Genera beneficio significativo y sostenible"],
+  ["C1: Impacto Social y Ambiental", 0.2, "1.2 Sostenibilidad y ambiente (agua, energía, residuos, huella carbono)", 0.1, "No aporta a la sostenibilidad ambiental", "Aporte marginal o no cuantificable", "Evidencia contribución ambiental", "Logra mejoras medibles en sostenibilidad"],
+  ["C2: Alineación Estratégica", 0.2, "2.1 Relación con PEI, POI o planes específicos", 0.2, "Sin relación con objetivos ni planes institucionales", "Relación parcial o indirecta con objetivos institucionales", "Tiene relación clara con uno o más objetivos estratégicos", "Contribuye directamente al cumplimiento de metas PEI/POI"],
+  ["C3: Innovación", 0.2, "3.1 Creatividad (enfoque novedoso o disruptivo)", 0.1, "Reproduce prácticas existentes", "Incorpora elementos creativos menores", "Introduce nuevos métodos o ideas relevantes", "Enfoque altamente creativo o disruptivo"],
+  ["C3: Innovación", 0.2, "3.2 Originalidad (grado de novedad en SEDAPAL / sector)", 0.05, "Solución común o ya aplicada", "Modifica o combina elementos existentes", "Solución nueva en SEDAPAL", "Solución inédita o pionera en el sector"],
+  ["C3: Innovación", 0.2, "3.3 Pertinencia (adecuación al problema identificado)", 0.05, "No responde a necesidad identificada", "Parcialmente vinculada a problema real", "Responde claramente a necesidad actual", "Resuelve necesidad prioritaria con alto sustento técnico"],
+  ["C4: Impacto Operativo y Económico", 0.4, "4.1 Eficiencia operativa (tiempos, costos, productividad, pérdidas)", 0.1, "No genera mejora operativa", "Mejora menor o localizada", "Optimiza recursos o tiempos de manera relevante", "Genera mejoras sustanciales en procesos críticos"],
+  ["C4: Impacto Operativo y Económico", 0.4, "4.2 Tiempo de Retorno de la Inversión (TRI)", 0.1, "TRI > 4 años", "3 años < TRI <= 4 años", "2 años < TRI <= 3 años", "TRI <= 2 años (o menor costo periódico)"],
+  ["C4: Impacto Operativo y Económico", 0.4, "4.3 Ahorro o Beneficio Anual Neto Estimado", 0.2, "Ahorro < S/ 50,000 o sin beneficio cuantificable", "S/ 50,000 <= Ahorro < S/ 100,000", "S/ 100,000 <= Ahorro < S/ 500,000", "Ahorro anual neto >= S/ 500,000"]
+];
+
+let dashSortCol = 'num';
+let dashSortAsc = true;
+let chartEstadoInstance = null;
+let chartTrimestreInstance = null;
+let chartCriteriosInstance = null;
+
+// Funciones matemáticas Anexo N° 02
+function clampSub(val, fallback = 2.75) {
+  let n = parseFloat(val);
+  if (isNaN(n)) n = fallback;
+  return Math.min(3, Math.max(0, parseFloat(n.toFixed(2))));
+}
+
+function calcC1234FromSubcriteria(s) {
+  const c1 = parseFloat(((s.s11 * 0.10 + s.s12 * 0.10) / 0.20).toFixed(2));
+  const c2 = parseFloat((s.s21).toFixed(2));
+  const c3 = parseFloat(((s.s31 * 0.10 + s.s32 * 0.05 + s.s33 * 0.05) / 0.20).toFixed(2));
+  const c4 = parseFloat(((s.s41 * 0.10 + s.s42 * 0.10 + s.s43 * 0.20) / 0.40).toFixed(2));
+  return { c1, c2, c3, c4 };
+}
+
+function calcScoreAnexo02(c1, c2, c3, c4) {
+  const weighted = (c1 * 0.20) + (c2 * 0.20) + (c3 * 0.20) + (c4 * 0.40);
+  return parseFloat(((weighted / 3) * 100).toFixed(1));
+}
+
+function getPrioridadLabel(puntaje) {
+  if (puntaje >= 88) return "Prioridad Alta (P1)";
+  if (puntaje >= 80) return "Prioridad Media-Alta (P2)";
+  return "Estándar (P3)";
+}
+
+function normalizeEstado(val) {
+  if (!val) return "En proceso";
+  const str = String(val).trim().toLowerCase();
+  if (str.includes("escalad")) return "Escalado";
+  if (str.includes("culminad")) return "Culminado";
+  return "En proceso";
+}
+
+function badgeEstado(est) {
+  const norm = normalizeEstado(est);
+  if (norm === 'Escalado') return `<span class="badge-status st-escalado"><i class="fa-solid fa-rocket"></i> Escalado</span>`;
+  if (norm === 'Culminado') return `<span class="badge-status st-culminado"><i class="fa-solid fa-check"></i> Culminado</span>`;
+  return `<span class="badge-status st-proceso"><i class="fa-solid fa-spinner"></i> En proceso</span>`;
+}
+
+function renderSubcriteriaMiniPills(item) {
+  const f = (val) => Number(val || 0).toFixed(2);
+  return `
+    <div class="subcriteria-popover-wrap">
+      <span class="subcriteria-badge-btn">
+        <i class="fa-solid fa-layer-group"></i> 9 Subcrit.
+      </span>
+      <div class="subcriteria-tooltip">
+        <div style="font-weight:700; font-size:11px; color:#93c5fd; border-bottom:1px solid rgba(255,255,255,0.15); padding-bottom:3px; margin-bottom:4px; text-align:center;">
+          9 Subcriterios Anexo N° 02 (Escala 0 a 3)
+        </div>
+        <div class="sub-tt-grid">
+          <div class="sub-tt-item"><strong>1.1:</strong> ${f(item.s11)}</div>
+          <div class="sub-tt-item"><strong>1.2:</strong> ${f(item.s12)}</div>
+          <div class="sub-tt-item"><strong>2.1:</strong> ${f(item.s21)}</div>
+          <div class="sub-tt-item"><strong>3.1:</strong> ${f(item.s31)}</div>
+          <div class="sub-tt-item"><strong>3.2:</strong> ${f(item.s32)}</div>
+          <div class="sub-tt-item"><strong>3.3:</strong> ${f(item.s33)}</div>
+          <div class="sub-tt-item"><strong>4.1:</strong> ${f(item.s41)}</div>
+          <div class="sub-tt-item"><strong>4.2:</strong> ${f(item.s42)}</div>
+          <div class="sub-tt-item"><strong>4.3:</strong> ${f(item.s43)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let DICCIONARIO_4 = [
+  { codigo: "7.4.1", label: "7.4.1 Prueba Piloto", cls: "rt-piloto", esPorDefecto: true, palabras: ["prueba", "piloto"] },
+  { codigo: "7.4.2", label: "7.4.2 Nueva Solución (PMV/DT)", cls: "rt-nueva", esPorDefecto: false, palabras: ["gemelo", "aplicativo", "plataforma"] },
+  { codigo: "7.4.3", label: "7.4.3 Inv. Aplicada", cls: "rt-inv", esPorDefecto: false, palabras: ["investigacion", "cloruro"] }
+];
+
+function limpiarTextoDic(texto) {
+  return String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function cargarDiccionarioDesdeExcel(ws) {
+  if (!ws) return;
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+  if (!rows.length) return;
+
+  const codigos = rows[0] || [];
+  const estilos = {
+    "7.4.1": { label: "7.4.1 Prueba Piloto", cls: "rt-piloto" },
+    "7.4.2": { label: "7.4.2 Nueva Solución (PMV/DT)", cls: "rt-nueva" },
+    "7.4.3": { label: "7.4.3 Inv. Aplicada", cls: "rt-inv" }
+  };
+
+  const parsed = [];
+  for (let col = 0; col < codigos.length; col++) {
+    const codigo = String(codigos[col] || "").trim();
+    if (!codigo) continue;
+
+    const palabras = [];
+    let esPorDefecto = false;
+
+    for (let fila = 1; fila < rows.length; fila++) {
+      const valor = limpiarTextoDic(rows[fila] ? rows[fila][col] : "");
+      if (!valor) continue;
+      if (valor.includes("por defecto")) {
+        esPorDefecto = true;
+      } else {
+        palabras.push(valor);
+      }
+    }
+
+    const estilo = estilos[codigo] || { label: codigo, cls: "rt-piloto" };
+    parsed.push({
+      codigo,
+      label: estilo.label,
+      cls: estilo.cls,
+      esPorDefecto,
+      palabras
+    });
+  }
+
+  if (parsed.length > 0) {
+    DICCIONARIO_4 = parsed;
+  }
+}
+
+function detectMethodologyRoute(p) {
+  const textoProyecto = limpiarTextoDic(
+    `${p.titulo || ""} ${p.situacion_col_s || ""} ${p.alin_estrategico || ""}`
+  );
+
+  for (const regla of DICCIONARIO_4) {
+    if (regla.esPorDefecto) continue;
+    if (regla.palabras.some(pal => pal && textoProyecto.includes(pal))) {
+      const filterCode = regla.codigo === "7.4.2" ? "Nueva" : (regla.codigo === "7.4.3" ? "Investigación" : "Piloto");
+      return { code: filterCode, label: regla.label, cls: regla.cls };
+    }
+  }
+
+  const defecto = DICCIONARIO_4.find(r => r.esPorDefecto) || DICCIONARIO_4[0];
+  if (defecto) {
+    const filterCode = defecto.codigo === "7.4.2" ? "Nueva" : (defecto.codigo === "7.4.3" ? "Investigación" : "Piloto");
+    return { code: filterCode, label: defecto.label, cls: defecto.cls };
+  }
+  return { code: "Piloto", label: "7.4.1 Prueba Piloto", cls: "rt-piloto" };
+}
+
+function computeQuarterFromDate(dateStr) {
+  if (!dateStr || dateStr.length < 7) return null;
+  const parts = dateStr.split('-');
+  if (parts.length < 2) return null;
+  const year = parts[0];
+  const month = parseInt(parts[1], 10);
+  if (isNaN(month)) return null;
+  const q = Math.ceil(month / 3);
+  const mapQ = { 1: '1ER TRIM', 2: '2DO TRIM', 3: '3ER TRIM', 4: '4TO TRIM' };
+  return `${mapQ[q] || '1ER TRIM'} ${year}`;
+}
+
+function getScheduleHealth(p) {
+  const norm = normalizeEstado(p.estado);
+  if (norm === 'Escalado' || norm === 'Culminado' || p.avance >= 100) {
+    return { status: 'ok', badge: `<span class="badge-status st-escalado"><i class="fa-solid fa-check-double"></i> Cumplido</span>` };
+  }
+  const today = "2026-11-06";
+  const fin = p.fecha_fin || "2026-12-31";
+  const ini = p.fecha_inicio || "2026-01-01";
+  if (fin < today && p.avance < 100) {
+    return { status: 'late', badge: `<span class="badge-status st-riesgo"><i class="fa-solid fa-triangle-exclamation"></i> Plazo Vencido</span>` };
+  }
+  const tStart = new Date(ini).getTime();
+  const tEnd = new Date(fin).getTime();
+  const tNow = new Date(today).getTime();
+  if (tEnd > tStart && tNow > tStart) {
+    const elapsedRatio = ((tNow - tStart) / (tEnd - tStart)) * 100;
+    if (elapsedRatio - p.avance > 25) {
+      return { status: 'warn', badge: `<span class="badge-status st-proceso"><i class="fa-solid fa-clock"></i> En Riesgo</span>` };
+    }
+  }
+  return { status: 'ontime', badge: `<span class="badge-status st-culminado"><i class="fa-solid fa-calendar-check"></i> En Plazo</span>` };
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tabId === 'tab-dashboard') updateKPIsAndCharts();
+  if (tabId === 'tab-gantt') renderGantt();
+}
+
+function populateDropdownFilters() {
+  const liderSelect = document.getElementById('dash-filter-lider');
+  const trimSelect = document.getElementById('dash-filter-trim');
+  const lideres = [...new Set(PROYECTOS.map(p => p.lider).filter(Boolean))].sort();
+  const trims = [...new Set(PROYECTOS.map(p => p.programacion).filter(Boolean))];
+
+  liderSelect.innerHTML = '<option value="TODOS">Líder: Todos</option>' +
+    lideres.map(l => `<option value="${l}">${l}</option>`).join('');
+  trimSelect.innerHTML = '<option value="TODOS">Trimestre: Todos</option>' +
+    trims.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+function sortDashTable(col) {
+  if (dashSortCol === col) dashSortAsc = !dashSortAsc;
+  else { dashSortCol = col; dashSortAsc = (col === 'puntaje') ? false : true; }
+  renderDashboardTable();
+}
+
+function quickFilterDashboard(estado) {
+  document.getElementById('dash-filter-estado').value = estado;
+  renderDashboardTable();
+}
+
+function resetDashFilters() {
+  document.getElementById('dash-search').value = '';
+  document.getElementById('dash-filter-estado').value = 'TODOS';
+  document.getElementById('dash-filter-lider').value = 'TODOS';
+  document.getElementById('dash-filter-trim').value = 'TODOS';
+  dashSortCol = 'num';
+  dashSortAsc = true;
+  renderDashboardTable();
+}
+
+// ============================================================================
+// TABLA 1: CUADRO DE MANDO (HOJA 1)
+// ============================================================================
+function renderDashboardTable() {
+  const q = document.getElementById('dash-search').value.toLowerCase();
+  const est = document.getElementById('dash-filter-estado').value;
+  const lid = document.getElementById('dash-filter-lider').value;
+  const trim = document.getElementById('dash-filter-trim').value;
+
+  let filtered = PROYECTOS.filter(p => {
+    const mEst = (est === 'TODOS' || normalizeEstado(p.estado) === normalizeEstado(est));
+    const mLid = (lid === 'TODOS' || p.lider === lid);
+    const mTrim = (trim === 'TODOS' || p.programacion === trim);
+    const mQ = p.titulo.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.lider.toLowerCase().includes(q) || (p.situacion_col_s || "").toLowerCase().includes(q);
+    return mEst && mLid && mTrim && mQ;
+  });
+
+  filtered.sort((a, b) => {
+    let vA = a[dashSortCol];
+    let vB = b[dashSortCol];
+    if (typeof vA === 'string') return dashSortAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+    return dashSortAsc ? (vA - vB) : (vB - vA);
+  });
+
+  document.getElementById('dash-count-label').innerText = `${filtered.length} de ${PROYECTOS.length} proyectos`;
+  const tbody = document.getElementById('dashboard-top-table');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; padding:24px; color:#64748b;">No hay proyectos cargados. Conecta el Excel oficial.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td><span class="num-badge">${p.num}</span></td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'id', this.innerText)"><strong>${p.id}</strong></td>
+      <td style="min-width:240px;" contenteditable="true" onblur="updateProjectField(${p.num}, 'titulo', this.innerText)">${p.titulo}</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'programacion', this.innerText)">${p.programacion}</td>
+      <td>
+        <select class="select-ctrl" style="padding:3px 6px; font-size:11px;" onchange="updateProjectField(${p.num}, 'estado', this.value)">
+          <option value="Culminado" ${normalizeEstado(p.estado)==='Culminado'?'selected':''}>Culminado</option>
+          <option value="En proceso" ${normalizeEstado(p.estado)==='En proceso'?'selected':''}>En proceso</option>
+          <option value="Escalado" ${normalizeEstado(p.estado)==='Escalado'?'selected':''}>Escalado</option>
+        </select>
+      </td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'lider', this.innerText)">${p.lider}</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'partes', this.innerText)">${p.partes}</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'fecha_inicio', this.innerText)">${p.fecha_inicio}</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'fecha_fin', this.innerText)">${p.fecha_fin}</td>
+      <td><span class="score-pill ${p.puntaje >= 88 ? 'sc-high' : 'sc-med'}">${p.puntaje}</span></td>
+      <td>${p.prioridad}</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'avance', this.innerText)">${p.avance}%</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'decision_comite', this.innerText)">${p.decision_comite || ''}</td>
+      <td style="min-width:280px; font-size:11.5px; background:#fffbeb;" contenteditable="true" onblur="updateProjectField(${p.num}, 'situacion_col_s', this.innerText)" title="Haz clic para editar Columna R">${p.situacion_col_s || ''}</td>
+    </tr>
+  `).join('');
+}
+
+function updateProjectField(num, field, val) {
+  const p = PROYECTOS.find(x => x.num === num);
+  if (!p) return;
+  if (field === 'avance') {
+    let clean = parseFloat(String(val).replace('%', '').trim());
+    p.avance = isNaN(clean) ? 0 : Math.min(100, Math.max(0, Math.round(clean)));
+    if (p.avance === 100 && normalizeEstado(p.estado) === 'En proceso') {
+      p.estado = 'Culminado';
+      p.decision_comite = 'Piloto Culminado con Informe';
+    }
+  } else if (field === 'estado') {
+    p.estado = normalizeEstado(val);
+    if (p.estado === 'Culminado' || p.estado === 'Escalado') p.avance = 100;
+  } else if (field === 'fecha_fin') {
+    p.fecha_fin = String(val).trim();
+    const autoQ = computeQuarterFromDate(p.fecha_fin);
+    if (autoQ) p.programacion = autoQ;
+  } else {
+    p[field] = String(val).trim();
+  }
+  renderAllViews();
+}
+
+function addNewProjectRow() {
+  const nextNum = PROYECTOS.length + 1;
+  const s11 = 2.75, s12 = 2.75, s21 = 3.00, s31 = 2.70, s32 = 2.70, s33 = 2.70, s41 = 2.75, s42 = 2.75, s43 = 2.75;
+  const { c1, c2, c3, c4 } = calcC1234FromSubcriteria({ s11, s12, s21, s31, s32, s33, s41, s42, s43 });
+  const sc = calcScoreAnexo02(c1, c2, c3, c4);
+  PROYECTOS.push({
+    num: nextNum,
+    id: `PRY-${String(nextNum).padStart(3, '0')}`,
+    titulo: "Nuevo Proyecto de I+D+i",
+    programacion: "4TO TRIM 2026",
+    estado: "En proceso",
+    lider: "EIIN",
+    partes: "EIIN - Área Usuaria",
+    fecha_inicio: "2026-06-01",
+    fecha_fin: "2026-12-15",
+    alin_estrategico: "OE5 Modernizar la gestión empresarial y transformación digital",
+    c1, c2, c3, c4,
+    s11, s12, s21, s31, s32, s33, s41, s42, s43,
+    puntaje: sc,
+    prioridad: getPrioridadLabel(sc),
+    avance: 15,
+    decision_comite: "En Ejecución",
+    situacion_col_s: "Registrado según procedimiento GDIPR0088 (Anexo N° 02)."
+  });
+  
+  selectedProjectNum = nextNum;
+  renderAllViews();
+}
+
+// ============================================================================
+// TABLA 2: SELECCIÓN DE INICIATIVAS (HOJA 2: 19 COLUMNAS A a S — CON 9 SUBCRITERIOS)
+// ============================================================================
+function renderIniciativas() {
+  document.getElementById('ini-count-label').innerText = INICIATIVAS.length;
+  document.getElementById('kpi-ideas').innerText = INICIATIVAS.length;
+  const tbody = document.getElementById('table-iniciativas');
+  if (INICIATIVAS.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:22px; color:#64748b;">Sin iniciativas cargadas. Conecta el Excel o registra una nueva.</td></tr>`;
+    return;
+  }
+
+  const theadTr = tbody.parentElement.querySelector('thead tr');
+  if (theadTr) {
+    theadTr.innerHTML = `
+      <th>ID (Col A)</th>
+      <th>Descripción de la Iniciativa (Col B)</th>
+      <th>Proponente (Col C)</th>
+      <th>Fecha (Col D)</th>
+      <th>C1 (20%)</th>
+      <th>C2 (20%)</th>
+      <th>C3 (20%)</th>
+      <th>C4 (40%)</th>
+      ${showSubcriteriaColumn ? '<th>9 Subcriterios (Cols K–S)</th>' : ''}
+      <th>Puntaje (Col I)</th>
+      <th>Dictamen (Col J)</th>
+      <th>Acción</th>
+    `;
+  }
+
+  tbody.innerHTML = INICIATIVAS.map((i, idx) => `
+    <tr class="${selectedIniIdx === idx ? 'selected-row' : ''}" onclick="selectInitiativeForCalc(${idx})" style="cursor:pointer;">
+      <td contenteditable="true" onclick="event.stopPropagation()" onblur="updateIniField(${idx}, 'id', this.innerText)"><strong>${i.id}</strong></td>
+      <td contenteditable="true" onclick="event.stopPropagation()" onblur="updateIniField(${idx}, 'titulo', this.innerText)" style="background:#fffbeb;">${i.titulo}</td>
+      <td contenteditable="true" onclick="event.stopPropagation()" onblur="updateIniField(${idx}, 'proponente', this.innerText)" style="background:#fffbeb;">${i.proponente}</td>
+      <td contenteditable="true" onclick="event.stopPropagation()" onblur="updateIniField(${idx}, 'fecha', this.innerText)">${i.fecha}</td>
+      <td style="text-align:center; font-weight:700;">${Number(i.c1).toFixed(2)}</td>
+      <td style="text-align:center; font-weight:700;">${Number(i.c2).toFixed(2)}</td>
+      <td style="text-align:center; font-weight:700;">${Number(i.c3).toFixed(2)}</td>
+      <td style="text-align:center; font-weight:700;">${Number(i.c4).toFixed(2)}</td>
+      ${showSubcriteriaColumn ? `<td>${renderSubcriteriaMiniPills(i)}</td>` : ''}
+      <td><span class="score-pill sc-high">${i.puntaje}</span></td>
+      <td><span class="badge-status st-escalado">${i.estado_eval}</span></td>
+      <td style="white-space:nowrap;" onclick="event.stopPropagation()">
+        <button class="btn-outline" style="padding:4px 7px; font-size:10.5px;" onclick="selectInitiativeAndOpenModal(${idx})" title="Abrir Calculadora de Subcriterios"><i class="fa-solid fa-scale-balanced"></i> Subcriterios</button>
+        <button class="btn-primary" style="padding:4px 8px; font-size:10.5px;" onclick="promoteIniToPortfolio(${idx})" title="Promover a Hoja 1 con sus 9 subcriterios"><i class="fa-solid fa-share"></i> Implementar</button>
+        <button class="btn-danger-sm" onclick="deleteInitiative(${idx})"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function selectInitiativeForCalc(idx) {
+  const ini = INICIATIVAS[idx];
+  if (!ini) return;
+  selectedIniIdx = idx;
+  document.getElementById('ini-mode-badge').innerText = `Editando: ${ini.id}`;
+  document.getElementById('ini-selected-banner').style.display = 'flex';
+  document.getElementById('ini-selected-label').innerText = `${ini.id} — ${ini.titulo}`;
+  document.getElementById('btn-update-ini').style.display = 'inline-flex';
+
+  document.getElementById('new-ini-title').value = ini.titulo;
+  document.getElementById('new-ini-prop').value = ini.proponente;
+  document.getElementById('new-ini-fecha').value = ini.fecha;
+
+  document.getElementById('ini-s11').value = ini.s11;
+  document.getElementById('ini-s12').value = ini.s12;
+  document.getElementById('ini-s21').value = ini.s21;
+  document.getElementById('ini-s31').value = ini.s31;
+  document.getElementById('ini-s32').value = ini.s32;
+  document.getElementById('ini-s33').value = ini.s33;
+  document.getElementById('ini-s41').value = ini.s41;
+  document.getElementById('ini-s42').value = ini.s42;
+  document.getElementById('ini-s43').value = ini.s43;
+
+  document.getElementById('sl-c1').value = Number(ini.c1).toFixed(2);
+  document.getElementById('sl-c2').value = Number(ini.c2).toFixed(2);
+  document.getElementById('sl-c3').value = Number(ini.c3).toFixed(2);
+  document.getElementById('sl-c4').value = Number(ini.c4).toFixed(2);
+
+  updateSimDisplayOnly(ini.c1, ini.c2, ini.c3, ini.c4);
+  renderIniciativas();
+}
+
+function selectInitiativeAndOpenModal(idx) {
+  selectInitiativeForCalc(idx);
+  openRubricaModalForSelectedIni();
+}
+
+function clearSelectedInitiative() {
+  selectedIniIdx = null;
+  document.getElementById('ini-mode-badge').innerText = "Modo: Nueva Iniciativa";
+  document.getElementById('ini-selected-banner').style.display = 'none';
+  document.getElementById('btn-update-ini').style.display = 'none';
+  document.getElementById('new-ini-title').value = '';
+  document.getElementById('new-ini-prop').value = '';
+  renderIniciativas();
+}
+
+function recalcFromIniSubcriteria() {
+  const s11 = clampSub(document.getElementById('ini-s11').value, 2.8);
+  const s12 = clampSub(document.getElementById('ini-s12').value, 2.8);
+  const s21 = clampSub(document.getElementById('ini-s21').value, 3.0);
+  const s31 = clampSub(document.getElementById('ini-s31').value, 2.8);
+  const s32 = clampSub(document.getElementById('ini-s32').value, 2.7);
+  const s33 = clampSub(document.getElementById('ini-s33').value, 2.7);
+  const s41 = clampSub(document.getElementById('ini-s41').value, 2.8);
+  const s42 = clampSub(document.getElementById('ini-s42').value, 2.8);
+  const s43 = clampSub(document.getElementById('ini-s43').value, 2.8);
+
+  const { c1, c2, c3, c4 } = calcC1234FromSubcriteria({ s11, s12, s21, s31, s32, s33, s41, s42, s43 });
+  document.getElementById('sl-c1').value = c1.toFixed(2);
+  document.getElementById('sl-c2').value = c2.toFixed(2);
+  document.getElementById('sl-c3').value = c3.toFixed(2);
+  document.getElementById('sl-c4').value = c4.toFixed(2);
+  updateSimDisplayOnly(c1, c2, c3, c4);
+
+  if (selectedIniIdx !== null && INICIATIVAS[selectedIniIdx]) {
+    saveSelectedInitiativeChanges(false);
+  }
+}
+
+function recalcSimFromSliders() {
+  const c1 = parseFloat(document.getElementById('sl-c1').value);
+  const c2 = parseFloat(document.getElementById('sl-c2').value);
+  const c3 = parseFloat(document.getElementById('sl-c3').value);
+  const c4 = parseFloat(document.getElementById('sl-c4').value);
+
+  document.getElementById('ini-s11').value = c1.toFixed(2);
+  document.getElementById('ini-s12').value = c1.toFixed(2);
+  document.getElementById('ini-s21').value = c2.toFixed(2);
+  document.getElementById('ini-s31').value = c3.toFixed(2);
+  document.getElementById('ini-s32').value = c3.toFixed(2);
+  document.getElementById('ini-s33').value = c3.toFixed(2);
+  document.getElementById('ini-s41').value = c4.toFixed(2);
+  document.getElementById('ini-s42').value = c4.toFixed(2);
+  document.getElementById('ini-s43').value = c4.toFixed(2);
+
+  updateSimDisplayOnly(c1, c2, c3, c4);
+  if (selectedIniIdx !== null && INICIATIVAS[selectedIniIdx]) {
+    saveSelectedInitiativeChanges(false);
+  }
+}
+
+function updateSimDisplayOnly(c1, c2, c3, c4) {
+  document.getElementById('val-c1').innerText = Number(c1).toFixed(2);
+  document.getElementById('val-c2').innerText = Number(c2).toFixed(2);
+  document.getElementById('val-c3').innerText = Number(c3).toFixed(2);
+  document.getElementById('val-c4').innerText = Number(c4).toFixed(2);
+  const score = calcScoreAnexo02(c1, c2, c3, c4).toFixed(1);
+  document.getElementById('sim-score').innerText = score + " / 100";
+}
+
+function saveSelectedInitiativeChanges(showAlert = true) {
+  if (selectedIniIdx === null || !INICIATIVAS[selectedIniIdx]) return;
+  const ini = INICIATIVAS[selectedIniIdx];
+  ini.titulo = document.getElementById('new-ini-title').value.trim() || ini.titulo;
+  ini.proponente = document.getElementById('new-ini-prop').value.trim() || ini.proponente;
+  ini.fecha = document.getElementById('new-ini-fecha').value.trim() || ini.fecha;
+
+  ini.s11 = clampSub(document.getElementById('ini-s11').value, ini.c1);
+  ini.s12 = clampSub(document.getElementById('ini-s12').value, ini.c1);
+  ini.s21 = clampSub(document.getElementById('ini-s21').value, ini.c2);
+  ini.s31 = clampSub(document.getElementById('ini-s31').value, ini.c3);
+  ini.s32 = clampSub(document.getElementById('ini-s32').value, ini.c3);
+  ini.s33 = clampSub(document.getElementById('ini-s33').value, ini.c3);
+  ini.s41 = clampSub(document.getElementById('ini-s41').value, ini.c4);
+  ini.s42 = clampSub(document.getElementById('ini-s42').value, ini.c4);
+  ini.s43 = clampSub(document.getElementById('ini-s43').value, ini.c4);
+
+  const { c1, c2, c3, c4 } = calcC1234FromSubcriteria(ini);
+  ini.c1 = c1; ini.c2 = c2; ini.c3 = c3; ini.c4 = c4;
+  ini.puntaje = calcScoreAnexo02(c1, c2, c3, c4);
+  ini.estado_eval = ini.puntaje >= 75 ? "APROBADA PARA PORTAFOLIO" : "EN REVISIÓN";
+
+  renderIniciativas();
+  if (showAlert) alert(`Subcriterios y puntaje actualizados en ${ini.id}.`);
+}
+
+function updateIniField(idx, field, val) {
+  INICIATIVAS[idx][field] = String(val).trim();
+}
+
+function deleteInitiative(idx) {
+  if (selectedIniIdx === idx) clearSelectedInitiative();
+  INICIATIVAS.splice(idx, 1);
+  renderIniciativas();
+}
+
+function addInitiative() {
+  const title = document.getElementById('new-ini-title').value.trim() || "Nueva Iniciativa I+D+i";
+  const prop = document.getElementById('new-ini-prop').value.trim() || "Área Usuaria / EIIN";
+  const fecha = document.getElementById('new-ini-fecha').value.trim() || "06/11/2026";
+
+  const s11 = clampSub(document.getElementById('ini-s11').value, 2.8);
+  const s12 = clampSub(document.getElementById('ini-s12').value, 2.8);
+  const s21 = clampSub(document.getElementById('ini-s21').value, 3.0);
+  const s31 = clampSub(document.getElementById('ini-s31').value, 2.8);
+  const s32 = clampSub(document.getElementById('ini-s32').value, 2.7);
+  const s33 = clampSub(document.getElementById('ini-s33').value, 2.7);
+  const s41 = clampSub(document.getElementById('ini-s41').value, 2.8);
+  const s42 = clampSub(document.getElementById('ini-s42').value, 2.8);
+  const s43 = clampSub(document.getElementById('ini-s43').value, 2.8);
+
+  const { c1, c2, c3, c4 } = calcC1234FromSubcriteria({ s11, s12, s21, s31, s32, s33, s41, s42, s43 });
+  const score = calcScoreAnexo02(c1, c2, c3, c4);
+  const nextNum = INICIATIVAS.length + 1;
+
+  INICIATIVAS.push({
+    num: nextNum,
+    id: `INI-${String(nextNum).padStart(3, '0')}`,
+    titulo: title,
+    proponente: prop,
+    fecha: fecha,
+    c1, c2, c3, c4,
+    s11, s12, s21, s31, s32, s33, s41, s42, s43,
+    puntaje: score,
+    estado_eval: score >= 75 ? "APROBADA PARA PORTAFOLIO" : "EN REVISIÓN"
+  });
+  
+  selectedIniIdx = INICIATIVAS.length - 1;
+  renderIniciativas();
+}
+
+function promoteIniToPortfolio(idx) {
+  const ini = INICIATIVAS[idx];
+  const nextNum = PROYECTOS.length + 1;
+  const ruta = document.getElementById('new-ini-ruta').value;
+  PROYECTOS.push({
+    num: nextNum,
+    id: `PRY-${String(nextNum).padStart(3, '0')}`,
+    titulo: ini.titulo,
+    programacion: "1ER TRIM 2026",
+    estado: "En proceso",
+    lider: ini.proponente,
+    partes: "EIIN - Área Usuaria",
+    fecha_inicio: "2026-01-15",
+    fecha_fin: "2026-12-15",
+    alin_estrategico: "OE5 Modernizar la gestión empresarial y transformación digital",
+    c1: ini.c1, c2: ini.c2, c3: ini.c3, c4: ini.c4,
+    s11: ini.s11, s12: ini.s12, s21: ini.s21, s31: ini.s31, s32: ini.s32, s33: ini.s33, s41: ini.s41, s42: ini.s42, s43: ini.s43,
+    puntaje: ini.puntaje,
+    prioridad: getPrioridadLabel(ini.puntaje),
+    avance: 15,
+    decision_comite: "En Planificación",
+    situacion_col_s: `Incorporado desde Selección (${ini.id}) bajo modalidad: ${ruta}.`
+  });
+  selectedProjectNum = nextNum;
+  renderAllViews();
+  alert(`La iniciativa ${ini.id} fue incorporada a la Hoja 1 como PRY-${String(nextNum).padStart(3, '0')} conservando sus 9 subcriterios.`);
+}
+
+// ============================================================================
+// TABLA 3: MATRIZ DE PRIORIZACIÓN (ETAPA 7.3 — 4 CRITERIOS + 9 SUBCRITERIOS)
+// ============================================================================
+function renderPriorizacion() {
+  const q = document.getElementById('prio-search').value.toLowerCase();
+  const est = document.getElementById('prio-filter-estado').value;
+  const sortMode = document.getElementById('prio-sort-by').value;
+
+  let filtered = PROYECTOS.filter(p => {
+    const mEst = (est === 'TODOS' || normalizeEstado(p.estado) === normalizeEstado(est));
+    const mQ = p.titulo.toLowerCase().includes(q) || p.lider.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+    return mEst && mQ;
+  });
+
+  if (sortMode === 'puntaje_desc') filtered.sort((a,b) => b.puntaje - a.puntaje);
+  else if (sortMode === 'num_asc') filtered.sort((a,b) => a.id.localeCompare(b.id));
+  else if (sortMode === 'titulo_asc') filtered.sort((a,b) => a.titulo.localeCompare(b.titulo));
+
+  document.getElementById('prio-count-label').innerText = `${filtered.length} de ${PROYECTOS.length} proyectos`;
+  const tbody = document.getElementById('table-priorizacion');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; padding:22px; color:#64748b;">Importa el Excel para visualizar la Matriz de Priorización (4 Criterios y 9 Subcriterios Anexo N° 02).</td></tr>`;
+    return;
+  }
+
+  if (selectedProjectNum === null && PROYECTOS.length > 0) {
+    selectedProjectNum = PROYECTOS[0].num;
+  }
+  syncTopProjectSubcriteriaBar();
+
+  const theadTr = tbody.parentElement.querySelector('thead tr');
+  if (theadTr) {
+    theadTr.innerHTML = `
+      <th>N°</th>
+      <th>Ranking</th>
+      <th>Código (Col A)</th>
+      <th>Título del Proyecto (Col B)</th>
+      <th>Líder Técnico (Col E)</th>
+      <th>C1 (20%) [Col J]</th>
+      <th>C2 (20%) [Col K]</th>
+      <th>C3 (20%) [Col L]</th>
+      <th>C4 (40%) [Col M]</th>
+      ${showSubcriteriaColumn ? '<th>9 Subcriterios (Cols S–AA)</th>' : ''}
+      <th>Puntaje (Col N)</th>
+      <th>Prioridad (Col O)</th>
+      <th>Estado (Col D)</th>
+      <th>Calculadora</th>
+    `;
+  }
+
+  tbody.innerHTML = filtered.map((p, idx) => `
+    <tr class="${selectedProjectNum === p.num ? 'selected-row' : ''}" onclick="selectProjectForSubcriteria(${p.num})" style="cursor:pointer;">
+      <td><span class="num-badge">${p.num}</span></td>
+      <td><strong>#${idx + 1}</strong></td>
+      <td><strong>${p.id}</strong></td>
+      <td style="max-width:250px;"><strong>${p.titulo}</strong></td>
+      <td>${p.lider}</td>
+      <td style="text-align:center; font-weight:700;">${Number(p.c1).toFixed(2)}</td>
+      <td style="text-align:center; font-weight:700;">${Number(p.c2).toFixed(2)}</td>
+      <td style="text-align:center; font-weight:700;">${Number(p.c3).toFixed(2)}</td>
+      <td style="text-align:center; font-weight:700;">${Number(p.c4).toFixed(2)}</td>
+      ${showSubcriteriaColumn ? `<td>${renderSubcriteriaMiniPills(p)}</td>` : ''}
+      <td><span class="score-pill ${p.puntaje >= 88 ? 'sc-high' : 'sc-med'}">${p.puntaje} pts</span></td>
+      <td><strong>${p.prioridad}</strong></td>
+      <td>${badgeEstado(p.estado)}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn-outline" style="padding:4px 8px; font-size:10.5px;" onclick="selectProjectAndOpenRubrica(${p.num})">
+          <i class="fa-solid fa-calculator"></i> Evaluar (9 Sub.)
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function selectProjectForSubcriteria(num) {
+  selectedProjectNum = num;
+  syncTopProjectSubcriteriaBar();
+  renderPriorizacion();
+}
+
+function selectProjectAndOpenRubrica(num) {
+  selectedProjectNum = num;
+  syncTopProjectSubcriteriaBar();
+  renderPriorizacion();
+  openRubricaModalForSelectedProject();
+}
+
+function syncTopProjectSubcriteriaBar() {
+  const p = PROYECTOS.find(x => x.num === selectedProjectNum);
+  if (!p) return;
+  document.getElementById('prio-selected-badge').innerText = `Activo: ${p.id}`;
+  document.getElementById('prio-sel-title').innerText = `${p.id} — ${p.titulo}`;
+  document.getElementById('prio-sel-c1234').innerText =
+    `C1 (20%): ${Number(p.c1).toFixed(2)} | C2 (20%): ${Number(p.c2).toFixed(2)} | C3 (20%): ${Number(p.c3).toFixed(2)} | C4 (40%): ${Number(p.c4).toFixed(2)}`;
+  document.getElementById('prio-sel-score').innerText = `${p.puntaje} / 100`;
+
+  document.getElementById('prj-s11').value = p.s11;
+  document.getElementById('prj-s12').value = p.s12;
+  document.getElementById('prj-s21').value = p.s21;
+  document.getElementById('prj-s31').value = p.s31;
+  document.getElementById('prj-s32').value = p.s32;
+  document.getElementById('prj-s33').value = p.s33;
+  document.getElementById('prj-s41').value = p.s41;
+  document.getElementById('prj-s42').value = p.s42;
+  document.getElementById('prj-s43').value = p.s43;
+}
+
+function updateSelectedProjectFromSubInputs() {
+  const p = PROYECTOS.find(x => x.num === selectedProjectNum);
+  if (!p) return;
+  p.s11 = clampSub(document.getElementById('prj-s11').value, p.c1);
+  p.s12 = clampSub(document.getElementById('prj-s12').value, p.c1);
+  p.s21 = clampSub(document.getElementById('prj-s21').value, p.c2);
+  p.s31 = clampSub(document.getElementById('prj-s31').value, p.c3);
+  p.s32 = clampSub(document.getElementById('prj-s32').value, p.c3);
+  p.s33 = clampSub(document.getElementById('prj-s33').value, p.c3);
+  p.s41 = clampSub(document.getElementById('prj-s41').value, p.c4);
+  p.s42 = clampSub(document.getElementById('prj-s42').value, p.c4);
+  p.s43 = clampSub(document.getElementById('prj-s43').value, p.c4);
+
+  const { c1, c2, c3, c4 } = calcC1234FromSubcriteria(p);
+  p.c1 = c1; p.c2 = c2; p.c3 = c3; p.c4 = c4;
+  p.puntaje = calcScoreAnexo02(c1, c2, c3, c4);
+  p.prioridad = getPrioridadLabel(p.puntaje);
+
+  syncTopProjectSubcriteriaBar();
+  renderPriorizacion();
+  renderDashboardTable();
+  updateKPIsAndCharts();
+}
+
+// ============================================================================
+// TABLA 4: DIAGRAMA DE GANTT 360° INTERACTIVO (ETAPA 7.4 GDIPR0088)
+// ============================================================================
+let ganttHealthFilter = 'TODOS'; // 'TODOS' | 'ok' | 'ontime' | 'warn' | 'late'
+
+function setGanttScale(mode) {
+  ganttScaleMode = mode;
+  document.getElementById('btn-mode-q').classList.toggle('active', mode === 'trimestral');
+  document.getElementById('btn-mode-m').classList.toggle('active', mode === 'mensual');
+  document.getElementById('btn-mode-c').classList.toggle('active', mode === 'continuo');
+  renderGantt();
+}
+
+function filterGanttByHealth(status) {
+  // Si hace clic en la misma tarjeta activa, se desactiva el filtro y muestra TODOS
+  if (ganttHealthFilter === status) {
+    ganttHealthFilter = 'TODOS';
+  } else {
+    ganttHealthFilter = status;
+  }
+  const healthSelect = document.getElementById('gantt-health');
+  if (healthSelect) healthSelect.value = ganttHealthFilter;
+  renderGantt();
+}
+
+function syncGanttHealthDropdown(val) {
+  ganttHealthFilter = val;
+  renderGantt();
+}
+
+function resetGanttFilters() {
+  ganttHealthFilter = 'TODOS';
+  document.getElementById('gantt-search').value = '';
+  document.getElementById('gantt-ruta').value = 'TODOS';
+  document.getElementById('gantt-estado').value = 'TODOS';
+  const healthSelect = document.getElementById('gantt-health');
+  if (healthSelect) healthSelect.value = 'TODOS';
+  renderGantt();
+}
+
+function renderGantt() {
+  const q = document.getElementById('gantt-search').value.toLowerCase();
+  const est = document.getElementById('gantt-estado').value;
+  const rutaFilter = document.getElementById('gantt-ruta').value;
+
+  let countOk = 0, countOnTime = 0, countWarn = 0, countLate = 0;
+  PROYECTOS.forEach(p => {
+    const h = getScheduleHealth(p).status;
+    if (h === 'ok') countOk++;
+    else if (h === 'ontime') countOnTime++;
+    else if (h === 'warn') countWarn++;
+    else if (h === 'late') countLate++;
+  });
+  document.getElementById('g-kpi-ok').innerText = countOk;
+  document.getElementById('g-kpi-ontime').innerText = countOnTime;
+  document.getElementById('g-kpi-warn').innerText = countWarn;
+  document.getElementById('g-kpi-late').innerText = countLate;
+
+  // Resaltar visualmente la tarjeta KPI activa
+  ['ok', 'ontime', 'warn', 'late'].forEach(key => {
+    const cardEl = document.getElementById('g-card-' + key);
+    if (cardEl) cardEl.classList.toggle('active-filter', ganttHealthFilter === key);
+  });
+
+  let filtered = PROYECTOS.filter(p => {
+    const mEst = (est === 'TODOS' || normalizeEstado(p.estado) === normalizeEstado(est));
+    const routeObj = detectMethodologyRoute(p);
+    const mRuta = (rutaFilter === 'TODOS' || routeObj.code === rutaFilter);
+    const healthObj = getScheduleHealth(p);
+    const mHealth = (ganttHealthFilter === 'TODOS' || healthObj.status === ganttHealthFilter);
+    const mQ = p.titulo.toLowerCase().includes(q) || p.lider.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+    return mEst && mRuta && mHealth && mQ;
+  });
+
+  document.getElementById('gantt-count-label').innerText = `${filtered.length} de ${PROYECTOS.length} proyectos`;
+  const tbody = document.getElementById('table-gantt');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:22px; color:#64748b;">No hay proyectos que coincidan con el filtro seleccionado. Haz clic nuevamente en la tarjeta superior o en el botón de reinicio para ver todos.</td></tr>`;
+    return;
+  }
+
+  const headerEl = document.getElementById('gantt-timeline-header');
+  if (ganttScaleMode === 'trimestral') headerEl.innerText = "Cronograma Trimestral (1T-2025 a 4T-2026) — Rojo = Trimestre Actual";
+  else if (ganttScaleMode === 'mensual') headerEl.innerText = "Cronograma Mensual Detallado (Ene 2026 a Dic 2026)";
+  else headerEl.innerText = "Línea de Tiempo Continua (2024 - 2027) con Relleno Proporcional de % Avance Real";
+
+  const quarters = [
+    { label: '1T-25', start: '2025-01-01', end: '2025-03-31', now: false },
+    { label: '2T-25', start: '2025-04-01', end: '2025-06-30', now: false },
+    { label: '3T-25', start: '2025-07-01', end: '2025-09-30', now: false },
+    { label: '4T-25', start: '2025-10-01', end: '2025-12-31', now: false },
+    { label: '1T-26', start: '2026-01-01', end: '2026-03-31', now: false },
+    { label: '2T-26', start: '2026-04-01', end: '2026-06-30', now: false },
+    { label: '3T-26', start: '2026-07-01', end: '2026-09-30', now: false },
+    { label: '4T-26', start: '2026-10-01', end: '2026-12-31', now: true }
+  ];
+
+  const months2026 = [
+    { label: 'Ene', start: '2026-01-01', end: '2026-01-31', now: false },
+    { label: 'Feb', start: '2026-02-01', end: '2026-02-28', now: false },
+    { label: 'Mar', start: '2026-03-01', end: '2026-03-31', now: false },
+    { label: 'Abr', start: '2026-04-01', end: '2026-04-30', now: false },
+    { label: 'May', start: '2026-05-01', end: '2026-05-31', now: false },
+    { label: 'Jun', start: '2026-06-01', end: '2026-06-30', now: false },
+    { label: 'Jul', start: '2026-07-01', end: '2026-07-31', now: false },
+    { label: 'Ago', start: '2026-08-01', end: '2026-08-31', now: false },
+    { label: 'Set', start: '2026-09-01', end: '2026-09-30', now: false },
+    { label: 'Oct', start: '2026-10-01', end: '2026-10-31', now: false },
+    { label: 'Nov', start: '2026-11-01', end: '2026-11-30', now: true },
+    { label: 'Dic', start: '2026-12-01', end: '2026-12-31', now: false }
+  ];
+
+  tbody.innerHTML = filtered.map(p => {
+    const pStart = p.fecha_inicio || '2025-01-01';
+    const pEnd = p.fecha_fin || '2026-12-31';
+    const norm = normalizeEstado(p.estado);
+    const barColor = norm === 'Escalado' ? '#10b981' : (norm === 'Culminado' ? '#0284c7' : '#f59e0b');
+    const routeObj = detectMethodologyRoute(p);
+    const healthObj = getScheduleHealth(p);
+
+    let timelineHtml = '';
+    if (ganttScaleMode === 'trimestral') {
+      const cells = quarters.map(qItem => {
+        const active = (pStart <= qItem.end && pEnd >= qItem.start);
+        return `<div class="gantt-cell ${qItem.now ? 'current-period' : ''}" title="${qItem.label}: ${pStart} a ${pEnd} (${p.avance}%)">
+          ${active ? `<div class="gantt-bar" style="background:${barColor};"><div class="gantt-bar-progress" style="width:${p.avance}%;"></div><span style="z-index:2;">${qItem.label}</span></div>` : ''}
+        </div>`;
+      }).join('');
+      timelineHtml = `<div class="gantt-grid-q">${cells}</div>`;
+    } else if (ganttScaleMode === 'mensual') {
+      const cells = months2026.map(mItem => {
+        const active = (pStart <= mItem.end && pEnd >= mItem.start);
+        return `<div class="gantt-cell ${mItem.now ? 'current-period' : ''}" title="${mItem.label} 2026: ${pStart} a ${pEnd}">
+          ${active ? `<div class="gantt-bar" style="background:${barColor}; font-size:8.5px;">${mItem.label}</div>` : ''}
+        </div>`;
+      }).join('');
+      timelineHtml = `<div class="gantt-grid-m">${cells}</div>`;
+    } else {
+      const minTime = new Date('2024-01-01').getTime();
+      const maxTime = new Date('2027-06-30').getTime();
+      const totalSpan = maxTime - minTime;
+      const sT = Math.max(minTime, Math.min(maxTime, new Date(pStart).getTime() || minTime));
+      const eT = Math.max(sT + 86400000*15, Math.min(maxTime, new Date(pEnd).getTime() || maxTime));
+      const leftPct = ((sT - minTime) / totalSpan) * 100;
+      const widthPct = Math.max(6, ((eT - sT) / totalSpan) * 100);
+      const todayPct = ((new Date('2026-11-06').getTime() - minTime) / totalSpan) * 100;
+
+      timelineHtml = `
+        <div class="timeline-track" title="Inicio: ${pStart} | Fin: ${pEnd} | Avance: ${p.avance}%">
+          <div class="today-line" style="left:${todayPct}%;"><span class="today-tag">HOY</span></div>
+          <div class="timeline-span" style="left:${leftPct}%; width:${widthPct}%;">
+            <div class="timeline-fill" style="width:${p.avance}%; background:${barColor};">${p.avance}%</div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <tr>
+        <td><span class="num-badge">${p.num}</span></td>
+        <td><strong>${p.id}</strong></td>
+        <td style="max-width:240px;">
+          <strong>${p.titulo}</strong><br>
+          <span class="route-pill ${routeObj.cls}">${routeObj.label}</span>
+          <span style="font-size:10px; color:#64748b; margin-left:4px;">(${p.programacion})</span>
+        </td>
+        <td>${p.lider}</td>
+        <td><input type="date" class="date-input-gantt" value="${p.fecha_inicio}" onchange="updateProjectField(${p.num}, 'fecha_inicio', this.value)"></td>
+        <td><input type="date" class="date-input-gantt" value="${p.fecha_fin}" onchange="updateProjectField(${p.num}, 'fecha_fin', this.value)"></td>
+        <td style="width:135px;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700;">
+            <span>Avance:</span><span>${p.avance}%</span>
+          </div>
+          <input type="range" min="0" max="100" step="5" value="${p.avance}" class="slider-ctrl" onchange="updateProjectField(${p.num}, 'avance', this.value)">
+        </td>
+        <td>${healthObj.badge}</td>
+        <td>${timelineHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ============================================================================
+// TABLA 5: MONITOREO Y EDICIÓN DE LA COLUMNA R (ETAPAS 7.5 Y 7.6)
+// ============================================================================
+function renderMonitoreo() {
+  const q = document.getElementById('mon-search').value.toLowerCase();
+  const est = document.getElementById('mon-estado').value;
+
+  let filtered = PROYECTOS.filter(p => {
+    const matchEst = (est === 'TODOS' || normalizeEstado(p.estado) === normalizeEstado(est));
+    const matchQ = p.titulo.toLowerCase().includes(q) || p.lider.toLowerCase().includes(q) || (p.situacion_col_s || "").toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+    return matchEst && matchQ;
+  });
+
+  document.getElementById('mon-count-label').innerText = `${filtered.length} de ${PROYECTOS.length} proyectos`;
+  const tbody = document.getElementById('table-monitoreo');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:22px; color:#64748b;">Importa el Excel para visualizar y editar la Columna R.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td><span class="num-badge">${p.num}</span></td>
+      <td><strong>${p.id}</strong></td>
+      <td style="max-width:240px;"><strong>${p.titulo}</strong></td>
+      <td><strong>${p.lider}</strong><div style="font-size:11px; color:#64748b;">${p.partes}</div></td>
+      <td style="width:105px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700;"><span>${p.avance}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${p.avance}%; background:${p.avance===100 ? '#10b981' : '#0088cc'}"></div></div>
+      </td>
+      <td>${badgeEstado(p.estado)}</td>
+      <td contenteditable="true" onblur="updateProjectField(${p.num}, 'decision_comite', this.innerText)">${p.decision_comite || ''}</td>
+      <td style="min-width:320px; font-size:11.5px; color:#1e293b; background:#fffbeb;" contenteditable="true" onblur="updateProjectField(${p.num}, 'situacion_col_s', this.innerText)" title="Haz clic aquí para editar el sustento (Columna R)">${p.situacion_col_s || ''}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn-primary" style="padding:5px 9px; font-size:10.5px;" onclick="openProjectModal(${p.num})"><i class="fa-solid fa-up-right-from-square"></i> Ficha / Editar Col R</button>
+        <button class="btn-outline" style="padding:4px 7px; font-size:10.5px;" onclick="downloadAnexoTemplate(${p.num}, '03')" title="Descargar Anexo 03">A-03</button>
+        <button class="btn-outline" style="padding:4px 7px; font-size:10.5px;" onclick="downloadAnexoTemplate(${p.num}, '04')" title="Descargar Anexo 04">A-04</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================================
+// MODALES INTERACTIVOS (FICHA DE PROYECTO COLUMNA R Y CALCULADORA 9 SUBCRITERIOS)
+// ============================================================================
+function openProjectModal(num) {
+  const p = PROYECTOS.find(x => x.num === num);
+  if (!p) return;
+  document.getElementById('mod-num').value = p.num;
+  document.getElementById('mod-title').innerText = `${p.id} — ${p.titulo}`;
+  document.getElementById('mod-sub').innerText = `Líder EIIN: ${p.lider} | Partes: ${p.partes} | Programación: ${p.programacion}`;
+  document.getElementById('mod-estado').value = normalizeEstado(p.estado);
+  document.getElementById('mod-avance').value = p.avance;
+  document.getElementById('mod-decision').value = p.decision_comite || '';
+  document.getElementById('mod-alin').value = p.alin_estrategico || '';
+  document.getElementById('mod-cols').value = p.situacion_col_s || '';
+  document.getElementById('project-modal').classList.add('open');
+}
+
+function closeProjectModal() {
+  document.getElementById('project-modal').classList.remove('open');
+}
+
+function saveProjectModal() {
+  const num = parseInt(document.getElementById('mod-num').value, 10);
+  const p = PROYECTOS.find(x => x.num === num);
+  if (!p) return;
+  p.estado = normalizeEstado(document.getElementById('mod-estado').value);
+  p.avance = Math.min(100, Math.max(0, parseInt(document.getElementById('mod-avance').value, 10) || 0));
+  p.decision_comite = document.getElementById('mod-decision').value.trim();
+  p.alin_estrategico = document.getElementById('mod-alin').value.trim();
+  p.situacion_col_s = document.getElementById('mod-cols').value.trim();
+  closeProjectModal();
+  renderAllViews();
+}
+
+function downloadAnexoFromModal(tipo) {
+  const num = parseInt(document.getElementById('mod-num').value, 10);
+  saveProjectModal();
+  downloadAnexoTemplate(num, tipo);
+}
+
+function formatPesoCell(val) {
+  if (val === undefined || val === null || val === "") return "";
+  const str = String(val).trim();
+  if (str.endsWith("%")) return str;
+  const n = parseFloat(str);
+  if (!isNaN(n) && String(n) === str) {
+    return n <= 1 ? Math.round(n * 100) + "%" : n + "%";
+  }
+  return str;
+}
+
+function renderSheet3Table() {
+  const tbody = document.getElementById('table-rubrica-sheet3');
+  if (!tbody) return;
+  const theadTr = tbody.parentElement.querySelector('thead tr');
+
+  // 1. Detectar la fila de encabezado real (aquella que tenga al menos 5 columnas con texto)
+  let hIdx = 3;
+  for (let i = 0; i < Math.min(8, SHEET3_ROWS.length); i++) {
+    const nonEmptyCols = (SHEET3_ROWS[i] || []).filter(c => String(c).trim() !== "").length;
+    const rowStr = (SHEET3_ROWS[i] || []).join(" ").toLowerCase();
+    if (nonEmptyCols >= 5 && (rowStr.includes("criterio") || rowStr.includes("punto"))) {
+      hIdx = i;
+      break;
+    }
+  }
+
+  const dataRows = SHEET3_ROWS.slice(hIdx + 1).filter(r => r && r.some(c => String(c).trim() !== ""));
+  if (dataRows.length === 0) return;
+
+  // 2. Si tu Excel viene con 10 columnas (Cód Criterio, Criterio, Peso, Cód Sub, Subcriterio, Peso Sub, 0, 1, 2, 3)
+  // o con 8 columnas, ajustamos automáticamente:
+  const maxCols = Math.max(...dataRows.map(r => r.length));
+
+  if (maxCols >= 10) {
+    if (theadTr) {
+      theadTr.innerHTML = `
+        <th>Criterio (Anexo N° 02)</th>
+        <th style="text-align:center;">Peso Crit.</th>
+        <th>Subcriterio</th>
+        <th style="text-align:center;">Peso Sub.</th>
+        <th>0 Puntos</th>
+        <th>1 Punto</th>
+        <th>2 Puntos</th>
+        <th>3 Puntos</th>
+      `;
+    }
+    tbody.innerHTML = dataRows.map(r => `
+      <tr>
+        <td><strong>${r[0] || ''} ${r[1] ? '— ' + r[1] : ''}</strong></td>
+        <td style="text-align:center; font-weight:700;">${formatPesoCell(r[2])}</td>
+        <td><strong>${r[3] || ''}</strong> ${r[4] || ''}</td>
+        <td style="text-align:center; font-weight:700;">${formatPesoCell(r[5])}</td>
+        <td>${r[6] || ''}</td>
+        <td>${r[7] || ''}</td>
+        <td>${r[8] || ''}</td>
+        <td><strong>${r[9] || ''}</strong></td>
+      </tr>
+    `).join('');
+  } else {
+    if (theadTr) {
+      theadTr.innerHTML = `
+        <th>Criterio (Anexo N° 02)</th>
+        <th style="text-align:center;">Peso Criterio</th>
+        <th>Subcriterio</th>
+        <th style="text-align:center;">Peso Subcriterio</th>
+        <th>0 Puntos</th>
+        <th>1 Punto</th>
+        <th>2 Puntos</th>
+        <th>3 Puntos</th>
+      `;
+    }
+    tbody.innerHTML = dataRows.map(r => `
+      <tr>
+        <td><strong>${r[0] || ''}</strong></td>
+        <td style="text-align:center; font-weight:700;">${formatPesoCell(r[1])}</td>
+        <td>${r[2] || ''}</td>
+        <td style="text-align:center; font-weight:700;">${formatPesoCell(r[3])}</td>
+        <td>${r[4] || ''}</td>
+        <td>${r[5] || ''}</td>
+        <td>${r[6] || ''}</td>
+        <td><strong>${r[7] || ''}</strong></td>
+      </tr>
+    `).join('');
+  }
+}
+
+function loadSubcriteriaIntoRubricaModal(sObj, labelText) {
+  document.getElementById('rub-modal-target-label').innerText = labelText;
+  const keys = ['11','12','21','31','32','33','41','42','43'];
+  keys.forEach(k => {
+    const val = clampSub(sObj['s' + k], 3);
+    document.getElementById('rub-num-' + k).value = val;
+    document.getElementById('rub-' + k).value = String(Math.round(val));
+  });
+  renderSheet3Table();
+  calcRubricaAnexo02();
+  document.getElementById('rubrica-modal').classList.add('open');
+}
+
+function openRubricaModalForSelectedIni() {
+  rubricaContextMode = 'iniciativa';
+  const sObj = {
+    s11: document.getElementById('ini-s11').value,
+    s12: document.getElementById('ini-s12').value,
+    s21: document.getElementById('ini-s21').value,
+    s31: document.getElementById('ini-s31').value,
+    s32: document.getElementById('ini-s32').value,
+    s33: document.getElementById('ini-s33').value,
+    s41: document.getElementById('ini-s41').value,
+    s42: document.getElementById('ini-s42').value,
+    s43: document.getElementById('ini-s43').value
+  };
+  const label = selectedIniIdx !== null && INICIATIVAS[selectedIniIdx]
+    ? `Editando Iniciativa (Hoja 2): ${INICIATIVAS[selectedIniIdx].id} — ${INICIATIVAS[selectedIniIdx].titulo}`
+    : `Calculadora para Nueva Iniciativa (Hoja 2)`;
+  loadSubcriteriaIntoRubricaModal(sObj, label);
+}
+
+function openRubricaModalForSelectedProject() {
+  rubricaContextMode = 'proyecto';
+  const p = PROYECTOS.find(x => x.num === selectedProjectNum) || PROYECTOS[0];
+  if (!p) {
+    openRubricaModalForSelectedIni();
+    return;
+  }
+  selectedProjectNum = p.num;
+  loadSubcriteriaIntoRubricaModal(p, `Editando Proyecto (Hoja 1): ${p.id} — ${p.titulo}`);
+}
+
+function closeRubricaModal() {
+  document.getElementById('rubrica-modal').classList.remove('open');
+}
+
+function syncRubSelectToInput(code) {
+  const selVal = document.getElementById('rub-' + code).value;
+  document.getElementById('rub-num-' + code).value = selVal;
+  calcRubricaAnexo02();
+}
+
+function calcRubricaAnexo02() {
+  const s11 = clampSub(document.getElementById('rub-num-11').value, 3);
+  const s12 = clampSub(document.getElementById('rub-num-12').value, 3);
+  const s21 = clampSub(document.getElementById('rub-num-21').value, 3);
+  const s31 = clampSub(document.getElementById('rub-num-31').value, 3);
+  const s32 = clampSub(document.getElementById('rub-num-32').value, 3);
+  const s33 = clampSub(document.getElementById('rub-num-33').value, 3);
+  const s41 = clampSub(document.getElementById('rub-num-41').value, 3);
+  const s42 = clampSub(document.getElementById('rub-num-42').value, 3);
+  const s43 = clampSub(document.getElementById('rub-num-43').value, 3);
+
+  const { c1, c2, c3, c4 } = calcC1234FromSubcriteria({ s11, s12, s21, s31, s32, s33, s41, s42, s43 });
+  const weighted = calcScoreAnexo02(c1, c2, c3, c4).toFixed(1);
+  document.getElementById('rub-total-badge').innerText = `${weighted} / 100 pts`;
+  document.getElementById('rub-c1234-preview').innerText =
+    `C1: ${c1.toFixed(2)} | C2: ${c2.toFixed(2)} | C3: ${c3.toFixed(2)} | C4: ${c4.toFixed(2)} (Escala Oficial 0 a 3 pts)`;
+}
+
+function applyRubricaToTarget() {
+  const s11 = clampSub(document.getElementById('rub-num-11').value, 3);
+  const s12 = clampSub(document.getElementById('rub-num-12').value, 3);
+  const s21 = clampSub(document.getElementById('rub-num-21').value, 3);
+  const s31 = clampSub(document.getElementById('rub-num-31').value, 3);
+  const s32 = clampSub(document.getElementById('rub-num-32').value, 3);
+  const s33 = clampSub(document.getElementById('rub-num-33').value, 3);
+  const s41 = clampSub(document.getElementById('rub-num-41').value, 3);
+  const s42 = clampSub(document.getElementById('rub-num-42').value, 3);
+  const s43 = clampSub(document.getElementById('rub-num-43').value, 3);
+
+  if (rubricaContextMode === 'proyecto' && selectedProjectNum !== null) {
+    document.getElementById('prj-s11').value = s11;
+    document.getElementById('prj-s12').value = s12;
+    document.getElementById('prj-s21').value = s21;
+    document.getElementById('prj-s31').value = s31;
+    document.getElementById('prj-s32').value = s32;
+    document.getElementById('prj-s33').value = s33;
+    document.getElementById('prj-s41').value = s41;
+    document.getElementById('prj-s42').value = s42;
+    document.getElementById('prj-s43').value = s43;
+    updateSelectedProjectFromSubInputs();
+  } else {
+    document.getElementById('ini-s11').value = s11;
+    document.getElementById('ini-s12').value = s12;
+    document.getElementById('ini-s21').value = s21;
+    document.getElementById('ini-s31').value = s31;
+    document.getElementById('ini-s32').value = s32;
+    document.getElementById('ini-s33').value = s33;
+    document.getElementById('ini-s41').value = s41;
+    document.getElementById('ini-s42').value = s42;
+    document.getElementById('ini-s43').value = s43;
+    recalcFromIniSubcriteria();
+  }
+  closeRubricaModal();
+}
+
+function downloadAnexoTemplate(num, tipoAnexo) {
+  const p = PROYECTOS.find(x => x.num === num);
+  if (!p) return;
+  let content = "";
+  if (tipoAnexo === '03') {
+    content = `PROCEDIMIENTO GDIPR0088 Rev.01 - ANEXO N° 03
+ESTRUCTURA DEL INFORME DE PROYECTO DE INNOVACIÓN (VALIDACIÓN TECNOLÓGICA / NUEVA SOLUCIÓN)
+========================================================================================
+1. DATOS GENERALES DEL PROYECTO:
+- Código y Título: ${p.id} - ${p.titulo}
+- Tipo de intervención: ${detectMethodologyRoute(p).label}
+- Fecha de inicio y fin: ${p.fecha_inicio} al ${p.fecha_fin} (${p.programacion})
+- Área usuaria y Partes interesadas: ${p.partes}
+- Líder del proyecto (EIIN): ${p.lider}
+
+2. CONTEXTO Y EVALUACIÓN SEGÚN ANEXO N° 02 (4 CRITERIOS Y 9 SUBCRITERIOS ESCALA 0 A 3 PTS):
+- Alineamiento PEI/POI: ${p.alin_estrategico || 'OE2 Sostenibilidad Operacional / OE5 Modernización y Transformación Digital'}
+- C1 (Impacto Social y Ambiental - 20%): ${Number(p.c1).toFixed(2)} / 3.00 [1.1=${p.s11} | 1.2=${p.s12}]
+- C2 (Alineación Estratégica - 20%): ${Number(p.c2).toFixed(2)} / 3.00 [2.1=${p.s21}]
+- C3 (Innovación - 20%): ${Number(p.c3).toFixed(2)} / 3.00 [3.1=${p.s31} | 3.2=${p.s32} | 3.3=${p.s33}]
+- C4 (Impacto Operativo y Económico - 40%): ${Number(p.c4).toFixed(2)} / 3.00 [4.1=${p.s41} | 4.2=${p.s42} | 4.3=${p.s43}]
+- Puntaje Integral: ${p.puntaje} / 100 (${p.prioridad})
+
+3. OBJETIVOS E INDICADORES DEL PROYECTO:
+- % Avance Físico Ejecutado (Columna P): ${p.avance}%
+
+4. RESULTADOS TÉCNICOS, EVALUACIÓN ECONÓMICA Y ACTIVOS DE CONOCIMIENTO (COLUMNA R):
+${p.situacion_col_s || 'Sin sustento registrado.'}
+
+5. CONCLUSIONES Y RECOMENDACIONES PARA LA FASE DE ESCALAMIENTO (NUMERAL 7.6):
+- Decisión Comité / Etapa (Columna Q): ${p.decision_comite || p.estado}
+`;
+  } else {
+    content = `PROCEDIMIENTO GDIPR0088 Rev.01 - ANEXO N° 04
+ESTRUCTURA DEL INFORME DE PROYECTO DE INVESTIGACIÓN APLICADA (NUMERAL 7.4.3)
+========================================================================================
+1. DATOS GENERALES DE LA INVESTIGACIÓN:
+- Código y Título: ${p.id} - ${p.titulo}
+- Fecha de inicio y fin: ${p.fecha_inicio} al ${p.fecha_fin}
+- Área usuaria y Entidad cooperante: ${p.partes}
+- Líder de la investigación (EIIN): ${p.lider}
+
+2. PLANTEAMIENTO DEL PROBLEMA, ANTECEDENTES Y ALINEAMIENTO PEI/POI:
+- ${p.alin_estrategico || 'OE5 Modernización y Transformación Digital'}
+- Evaluación Anexo N° 02: C1=${Number(p.c1).toFixed(2)} | C2=${Number(p.c2).toFixed(2)} | C3=${Number(p.c3).toFixed(2)} | C4=${Number(p.c4).toFixed(2)} -> ${p.puntaje} / 100 pts
+- Subcriterios: 1.1=${p.s11}, 1.2=${p.s12}, 2.1=${p.s21}, 3.1=${p.s31}, 3.2=${p.s32}, 3.3=${p.s33}, 4.1=${p.s41}, 4.2=${p.s42}, 4.3=${p.s43}
+
+3. DISEÑO METODOLÓGICO Y EJECUCIÓN:
+- Programación: ${p.programacion} | Avance Físico (Columna P): ${p.avance}%
+
+4. RESULTADOS, CONTRASTACIÓN DE HIPÓTESIS Y SUSTENTO TÉCNICO (COLUMNA R):
+${p.situacion_col_s || 'Sin sustento registrado.'}
+
+5. GESTIÓN DEL CONOCIMIENTO, CONCLUSIONES Y RECOMENDACIONES:
+- Estado / Decisión (Columna Q): ${p.decision_comite || p.estado}
+`;
+  }
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Informe_GDIPR0088_Anexo_${tipoAnexo}_${p.id}.txt`;
+  a.click();
+}
+
+// ============================================================================
+// ACTUALIZACIÓN DE KPIS Y GRÁFICOS
+// ============================================================================
+function updateKPIsAndCharts() {
+  const total = PROYECTOS.length;
+  const esc = PROYECTOS.filter(p => normalizeEstado(p.estado) === 'Escalado').length;
+  const cul = PROYECTOS.filter(p => normalizeEstado(p.estado) === 'Culminado').length;
+  const proc = PROYECTOS.filter(p => normalizeEstado(p.estado) === 'En proceso').length;
+
+  document.getElementById('kpi-total').innerText = total;
+  document.getElementById('kpi-escalados').innerText = esc;
+  document.getElementById('kpi-culminados').innerText = cul;
+  document.getElementById('kpi-proceso').innerText = proc;
+  document.getElementById('kpi-ideas').innerText = INICIATIVAS.length;
+
+  const avg = (key) => total === 0 ? 0 : (PROYECTOS.reduce((acc, p) => acc + (parseFloat(p[key]) || 0), 0) / total).toFixed(2);
+  const avgC1 = avg('c1');
+  const avgC2 = avg('c2');
+  const avgC3 = avg('c3');
+  const avgC4 = avg('c4');
+
+  const qLabels = ['1ER TRIM 2025', '2DO TRIM 2025', '3ER TRIM 2025', '4TO TRIM 2025', '1ER TRIM 2026', '2DO TRIM 2026', '3ER TRIM 2026', '4TO TRIM 2026'];
+  const qCounts = qLabels.map(q => PROYECTOS.filter(p => {
+    const prog = (p.programacion || '').toUpperCase().trim();
+    return prog.includes(q.slice(0,3)) && prog.includes(q.slice(-4));
+  }).length);
+
+  if (chartEstadoInstance) chartEstadoInstance.destroy();
+  chartEstadoInstance = new Chart(document.getElementById('chartEstado'), {
+    type: 'doughnut',
+    data: {
+      labels: [`Culminados (${cul})`, `En Proceso (${proc})`, `Escalados (${esc})`],
+      datasets: [{ data: [cul, proc, esc], backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'], borderWidth: 2 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+  });
+
+  if (chartTrimestreInstance) chartTrimestreInstance.destroy();
+  chartTrimestreInstance = new Chart(document.getElementById('chartTrimestre'), {
+    type: 'bar',
+    data: {
+      labels: ['1T-25', '2T-25', '3T-25', '4T-25', '1T-26', '2T-26', '3T-26', '4T-26'],
+      datasets: [{ label: 'Proyectos', data: qCounts, backgroundColor: '#005691', borderRadius: 5 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  if (chartCriteriosInstance) chartCriteriosInstance.destroy();
+  chartCriteriosInstance = new Chart(document.getElementById('chartCriterios'), {
+    type: 'bar',
+    data: {
+      labels: [
+        'C1: Social/Amb (20%)',
+        'C2: Alineación PEI (20%)',
+        'C3: Innovación (20%)',
+        'C4: Oper./Econ. (40%)'
+      ],
+      datasets: [{ label: 'Promedio (0 a 3 pts)', data: [avgC1, avgC2, avgC3, avgC4], backgroundColor: ['#0284c7', '#005691', '#0ea5e9', '#10b981'], borderRadius: 5 }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 3, ticks: { stepSize: 0.5 } } } }
+  });
+}
+
+function renderAllViews() {
+  populateDropdownFilters();
+  renderDashboardTable();
+  renderIniciativas();
+  renderPriorizacion();
+  renderGantt();
+  renderMonitoreo();
+  updateKPIsAndCharts();
+}
+
+// ============================================================================
+// CONEXIÓN DIRECTA A SHAREPOINT (NETLIFY + LOCAL) — SIN IMPORTAR / EXPORTAR
+// ============================================================================
+const DEFAULT_SHAREPOINT_URL = "https://sedapalcompe.sharepoint.com/:x:/s/EIIN/IQCkOUiXfjzuR627sOarF7VXAfbF0bv5n8175RpKfJPsRsg?e=qQYmuF";
+// Si subes el paquete a Netlify y quieres que el HTML local se conecte sin configurar nada,
+// puedes escribir aquí la URL de tu sitio Netlify (ej: "https://tu-sitio.netlify.app")
+const DEFAULT_NETLIFY_BASE_URL = "";
+
+const CACHE_STORAGE_KEY = "sgpi_sedapal_sharepoint_cache_v2";
+const CFG_NETLIFY_KEY = "sgpi_sedapal_netlify_base_url";
+const CFG_SP_URL_KEY = "sgpi_sedapal_sharepoint_url";
+
+// Instantánea inicial del Excel oficial (garantiza carga instantánea en local y sin conexión)
+const EMBEDDED_WORKBOOK_DATA = {"1_Portafolio_y_Priorizacion": [["SEDAPAL - SISTEMA DE GESTIÓN DEL PORTAFOLIO DE PROYECTOS DE I+D+i (PROCEDIMIENTO GDIPR0088 Rev.01 - ANEXO N° 02)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], ["Matriz Oficial con 4 Criterios de Priorización según Anexo N° 02 (GDIPR0088): C1 Impacto Social y Ambiental (20%), C2 Alineación Estratégica (20%), C3 Innovación (20%), C4 Impacto Operativo y Económico (40%) — Escala 0 a 3 pts", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], ["Código", "Título del Proyecto de I+D+i", "Programación", "Estado", "Líder Técnico (EIIN)", "Partes Interesadas", "Fecha Inicio", "Fecha Fin", "Alineamiento Estratégico (PEI/POI)", "C1: Impacto Social y Ambiental (20%)", "C2: Alineación Estratégica (20%)", "C3: Innovación (20%)", "C4: Impacto Operativo y Económico (40%)", "Puntaje Priorización (0-100)", "Nivel de Prioridad", "% Avance Físico", "Decisión Comité / Etapa", "Situación y Sustento Técnico (Activos de Conocimiento)", "sub1.1", "sub1.2", "sub2.1", "sub3.1", "sub3.2", "sub3.3", "sub4.1", "sub4.2", "sub4.3"], ["PRY-001", "GAS HELIO - Detección de fugas mediante el gas trazador de Helio en las redes primarias", "1ER TRIM 2025", "Culminado", "Christian Antonio De La Cruz Aquije", "EDP- EIIN - Empresa WAS", "2024-07-24", "2025-01-13", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 3, 2.62, 3, 3, 97.5, "Prioridad Alta (P1)", 1, "Aprobado - Escalado", "El proyecto piloto de innovación ESCALADO por el EDP.\nProceso de Selección CPS 091-2025-Sedapal, \nGANADOR DE BUENA PRO - EMPRESA WAS, cuyo servicio se encuentra en ejecución e implementado.", "", "", "", "", "", "", "", "", ""], ["PRY-002", "MACROMEDIDOR ELECTROMAGNÉTICO CON DATALOGGER - Macromedidor electromagnético con datalogger interno a corriente modelo MAG X2 marca ARKON", "1ER TRIM 2025", "Escalado", "Antonio Medrano Rivera", "EASu- EIIN - WES", "2024-07-21", "2025-03-31", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.87, 2.62, 2.85, 2.88, 94, "Prioridad Alta (P1)", 1, "Aprobado - Escalado", "Proyecto piloto de innovación ESCALADO, previamente remitido al CTPS para su programación y debate de anteproyecto de ET. SE GENERÓ LA CTPS-ET-062 MEDIDOR DE CAUDAL ELECTROMAGNÉTICO EN SISTEMAS DE AGUA POTABLE", "", "", "", "", "", "", "", "", ""], ["PRY-003", "TAKADÚ 2", "1ER TRIM 2025", "Culminado", "Walter Molina Peralta", "EOMR's y Gerencias de Servicios", "2024-01-26", "2025-01-25", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.78, 2.62, 2.7, 2.61, 88.8, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Proyecto piloto de innovación aún No escalado porque se está analizando otras tecnologías similares y desarrollados in house que puedan tener un mejor desempeño en la prelocalización o localización de fugas de agua no visibles que impacten mejor en la reducción del ANF e incidencias operativas.", "", "", "", "", "", "", "", "", ""], ["PRY-004", "KIT DE REPARACIÓN HENKEL - \"Sistema de protección superficial para reservorios de concreto para agua potable mediante recubrimiento epóxico con carga cerámica\"", "2DO TRIM 2025", "Culminado", "Miguel Angel Egusquiza Cordova", "EDP- EIIN - HENKEL", "2024-04-15", "2025-06-30", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.46, 2.62, 2.78, 2.58, 86.8, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Proyecto piloto de innovación culminado, remitido a la GDI con  Informe 010-2025-EIIN.\nPara su escalamiento el EDP en la oportunidad que corresponde en un nuevo proceso de selección para mentenimiento de redes primarias (será una actividad referido a reparaciones) lo deberá de considerar como una alternativa de reparación.", "", "", "", "", "", "", "", "", ""], ["PRY-005", "KIT DE REPARACION LOCTITE \"Sistema de reparación estructural para tuberías basado en masilla epóxica con carga metálica y cinta de refuerzo en fibra de vidrio impregnada con uretano activado por agua\"", "2DO TRIM 2025", "Culminado", "Miguel Angel Egusquiza Cordova", "EDP- EIIN", "2024-10-09", "2025-06-06", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.69, 2.62, 2.78, 2.61, 88.7, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Proyecto piloto de innovación culminado, remitido a la GDI con el Informe 011-2025-EIIN.\nPara su escalamiento el EDP en la oportunidad que corresponde en un nuevo proceso de selección para mentenimiento de redes primarias (será una actividad referido a reparaciones) lo deberá de considerar como una alternativa de reparación.", "", "", "", "", "", "", "", "", ""], ["PRY-006", "SAPRAPSL - Simulación y análisis de pérdidas en redes secundarias de agua potable utilizando software libre", "2DO TRIM 2025", "Culminado", "Walter Molina Peralta", "EOMRs, EIIN", "2025-04-07", "2025-06-30", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.49, 2.62, 2.55, 2.5, 84.4, "Prioridad Media-Alta (P2)", 1, "Piloto Culminado con Informe", "Culminado, remitido el Informe 12-2025-EIIN dirigido a la GDI\nSe recomienda continuar con la Fase II del SAPRAPSL para lograr incorporar un análisis de sensibilidad e incertidumbre para fortalecer la robustez del modelo ante variaciones en los parámetros de entrada.\nSe recomienda ejecutar pequeñas campañas para la validación de los resultados que genera el algoritmo del SAPRAPSL, ello en coordinación con el EOMR-Ca o con el EOMR donde se haga extensivo su uso.", "", "", "", "", "", "", "", "", ""], ["PRY-007", "KIT INNTECO - Kit de procesamiento de aguas residuales en restaurantes", "3ER TRIM 2025", "Culminado", "Christian Antonio De La Cruz Aquije", "EECAR- INNTECO", "2024-12-30", "2025-09-30", "OE4 Lograr la cobertura de tratamiento de aguas residuales y propiciar el reúso de las aguas y lodos residuales / OE5 Modernizar la gestión empresarial y transformación digital", 2.44, 2.62, 2.4, 2.52, 83.3, "Prioridad Media-Alta (P2)", 1, "Piloto Culminado con Informe", "Proyecto piloto de innovación Concluido con el Informe 21-2025-EIIN\nValor generado por el proyecto: A través del proyecto piloto “Kit de porcesamiento de aguas residuales” en restaurantes, se ha verificado que a través de los productos utilizados (BIORG CGV, Art 12 y Dac-1) se ha podido controlar la concentracion de los parámetros de VMA en los restaurantes Sesenta y La Bistecca es decir, en aquellos que cuentan con mayores controles de limpieza en sus operaciones, sin embargo, en la Polleria Chany, en donde no cuentan con procesos rigurosos de limpieza, no se ha podido verificar algún impacto positivo.\nLa escalabilidad corresponde a las UND para lo cual se remitirá el Informe a la GGAR para las atenciones al pedido de la SNI, como también al Comité de Gerentes.", "", "", "", "", "", "", "", "", ""], ["PRY-008", "AquaFOCAL/NODEX/AquaNEX - Aplicativo informativo sobre las magnitudes y prelocalización de las pérdidas de agua en las redes secundarías de agua potable", "3ER TRIM 2025", "Culminado", "Walter Molina Peralta", "EOMR-Ca, EIIN", "2025-07-16", "2025-09-15", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.5, 2.62, 2.55, 2.38, 82.9, "Prioridad Media-Alta (P2)", 1, "Piloto Culminado con Informe", "Proyecto Piloto de innovación concluido\nEn base al análisis y conclusiones se recomienda ampliar el alcance de número de sectores hidráulicos para varios Equipos de Operación y Mantenimiento de Redes debiéndose escoger sectores con porcentajes superiores a 30% de ANF, siendo necesario que estos estén conceptualizados como sectores controlados.\nEs necesario desde el punto de vista de recurso humano, considerar el incremento de un personal con aptitudes de conocimiento de redes de agua potable o ingeniería sanitaria o programación en EPANET o computación científica o ingeniería de sistemas, con fines de poder incrementar el número de sectores para el aplicativo y para el mantenimiento del mismo.", "", "", "", "", "", "", "", "", ""], ["PRY-009", "TAPAS HD CON SISTEMA DE SEGURIDAD - Tapas de Hierro Dúctil D400 KORUPAM", "3ER TRIM 2025", "Escalado", "Antonio Medrano Rivera", "EOMR-C - EIIN", "2024-11-01", "2025-09-15", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.87, 2.62, 2.85, 2.88, 94, "Prioridad Alta (P1)", 1, "Aprobado - Escalado", "Proyecto piloto de innovación ESCALADO por el Comité Técnico Permanente de Sedapal - CTPS, previa remisión del Informe N° 19-2025-EIIN remitido a la GDI.\nEl CTPS aprobó en su sesión 18-2025 del 17.12.2025 en su Acuerdo N° 01, actualizar la CTPS-ET-032 Rev. 02, para lo cual estos se evidenciaran en el ASIG y en Web de SEDAPAL", "", "", "", "", "", "", "", "", ""], ["PRY-010", "BATIMETRÍA CON VEHÍCULO NO TRIPULADO - Levantamiento Batimétrico con Vehículo de Superficie No Tripulado (USV) en la PTAR San Juan", "3ER TRIM 2025", "Culminado", "Miguel Angel Egusquiza Cordova", "EG-PTAR, EIIN", "2025-08-18", "2025-09-22", "OE5 Modernizar la gestión empresarial y transformación digital", 2.59, 2.62, 2.32, 2.7, 86.2, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Informe final concluido remitido a GDI.\nAl haber sido la evaluación económica favorable para SEDAPAL (escenario de compra de equipo), se ha coordinado con el EG-PTAR (área usuaria) y este tiene previsto la inclusión de la adquisición del equipamiento USV en la programación presupuestal del año 2027, así como en el Cuadro Multianual de Necesidades 2027, asegurando los recursos necesarios para la ejecución de la compra y el escalamiento de la tecnología", "", "", "", "", "", "", "", "", ""], ["PRY-011", "MICROTURBINA ADVANCED", "1ER TRIM 2026", "En proceso", "Miguel Angel Egusquiza Cordova", "EDP- GRUPO HIDRÁULICA", "2025-10-18", "2026-01-18", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.35, 2.62, 2.1, 2.37, 78.7, "Prioridad Media-Alta (P2)", 0.75, "En Ejecución Activa", "El EDP se encuentra gestionando los requisitos necesarios para realizar la instalación de la Microturbina en la cámara S0078", "", "", "", "", "", "", "", "", ""], ["PRY-012", "SEGURIDAD DE MEDIDORES", "1ER TRIM 2026", "En proceso", "Miguel Angel Egusquiza Cordova", "EIIN", "2026-01-15", "2026-12-15", "OE2 / OE5", 2.1, 2.62, 2.62, 2.32, 79.9, "Prioridad Media-Alta (P2)", 0.6, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-013", "SMART HYDRO", "1ER TRIM 2026", "En proceso", "Walter Molina Peralta", "EASu", "2026-01-15", "2026-12-15", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.1, 2.62, 2.4, 2.47, 80.4, "Prioridad Media-Alta (P2)", 0.75, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-014", "CLORURO FÉRRICO EN PTAR - INVESTIGACIÓN \"Aplicación de cloruro férrico para Mejoramiento de calidad de agua tratada y lodos en la PTAR San Pedro de Lurín EG-PTAR / GGAR – Etapa 2\"", "4TO TRIM 2025", "Culminado", "Ricardo Galindo Quispe", "EG-PTAR y EIIN", "2025-07-14", "2025-11-07", "OE5 Modernizar la gestión empresarial y transformación digital", 2.79, 2.62, 2.62, 2.58, 87.9, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Realizado el piloto, es posible escalar a PTAR de mayor caudal, en particular en\nafluentes con alta carga orgánica (mayor a 1000 mg/l como DQO).\nEl piloto es viable adaptarse a entorno de PTAR, con alta emisión de gases de\nalcantarilla, en especial Al exterior de planta.", "", "", "", "", "", "", "", "", ""], ["PRY-015", "GEMELO DIGITAL HYDRODIGITAL - Sistema  digital de gestión hídrica", "4TO TRIM 2025", "Culminado", "Walter Molina Peralta", "EOMR-S/Ca - ETIC", "2024-12-18", "2025-12-31", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.4, 2.62, 2.47, 2.44, 82.5, "Prioridad Media-Alta (P2)", 1, "Piloto Culminado con Informe", "Proyecto de innovación culminado.\nSe propone extender la plataforma de gemelo digital a otros sectores hidráulicos de SEDAPAL con altos niveles de ANF y que cuenten con una cobertura de micromedición superior al 80%, con el objetivo de consolidar un modelo de gestión predictivo y proactiva. \nLa Gerencia de Desarrollo e Investigación, en coordinación con el EIIN, deberá asegurar los \nrecursos necesarios (presupuestales y personal) y acompañar a las áreas usuarias operativas \nresponsables de la operación y mantenimiento de las redes secundarias de agua potable como son los EOMR’s de las Gerencias de Servicios Sur, Centro y Norte, para que incorporen nuevos sectores hidráulicos en la plataforma de gemelo digital e identifique anomalías operativas que tiendan a reducir el % de ANF, ello como parte del proceso de escalamiento, esta labor formará parte del monitoreo y/o seguimiento de proyectos de innovación culminados exitosamente.", "", "", "", "", "", "", "", "", ""], ["PRY-016", "IMPERMEABILIZANTE AQURON - “Impermeabilización de cámara reductora de presión mediante hidrogel de  sílice coloidal catalizado", "4TO TRIM 2025", "Culminado", "Miguel Angel Egusquiza Cordova", "EDP, EIIN", "2025-10-09", "2025-12-09", "OE5 Modernizar la gestión empresarial y transformación digital", 2.52, 2.62, 2.4, 2.46, 83.1, "Prioridad Media-Alta (P2)", 1, "Piloto Culminado con Informe", "Proyecto piloto de innovación concluido.\nNo se presenta acciones de escalamiento debido a que el producto no cumplió los objetivos \ntécnicos del Proyecto (impermeabilizar de manera permanente la cámara).", "", "", "", "", "", "", "", "", ""], ["PRY-017", "GEMELO DIGITAL BREÑA - Desarrollo e implementación de un Gemelo Digital para la gestión integral del agua en el Centro de Servicio de Breña de SEDAPAL", "2DO TRIM 2026", "En proceso", "Walter Molina Peralta", "EOMR-B, EIIN", "2025-11-17", "2026-05-16", "OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres / OE5 Modernizar la gestión empresarial y transformación digital", 2.29, 2.62, 2.7, 2.22, 80.3, "Prioridad Media-Alta (P2)", 0.7, "En Ejecución Activa", "EN DESARROLLO", "", "", "", "", "", "", "", "", ""], ["PRY-018", "FLOWEN", "2DO TRIM 2026", "En proceso", "Miguel Angel Egusquiza Cordova", "EG-PTAR- FLOWEN", "2025-11-11", "2026-05-11", "OE4 Lograr la cobertura de tratamiento de aguas residuales y propiciar el reúso de las aguas y lodos residuales / OE5 Modernizar la gestión empresarial y transformación digital", 2.46, 2.62, 2.55, 2.59, 85.4, "Prioridad Alta (P1)", 0.6, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-019", "VMA ELICROM", "2DO TRIM 2026", "En proceso", "Christian Antonio De La Cruz Aquije", "EECAR- ELICROM HACH", "2026-01-15", "2026-12-15", "OE2 / OE5", 2.46, 2.62, 2.47, 2.38, 82.1, "Prioridad Media-Alta (P2)", 0.85, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-020", "VMA ADR", "2DO TRIM 2026", "En proceso", "Christian Antonio De La Cruz Aquije", "EECAR- ADR", "2026-01-15", "2026-12-15", "OE2 / OE5", 2.43, 2.62, 2.62, 2.32, 82.1, "Prioridad Media-Alta (P2)", 0.7, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-021", "RECUBRIMIENTO ZINGA Y PPG", "3ER TRIM 2026", "En proceso", "Miguel Angel Egusquiza Cordova", "EIIN", "2026-01-15", "2026-12-15", "OE2 / OE5", 2.38, 2.62, 2.55, 2.43, 82.7, "Prioridad Media-Alta (P2)", 0.6, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-022", "SMART METERING PARA CLIENTES ESPECIALES", "1ER TRIM 2026", "En proceso", "Christian Antonio De La Cruz Aquije", "ESCE", "2025-10-06", "2026-01-21", "OE5 Modernizar la gestión empresarial y transformación digital", 2.73, 2.62, 2.03, 2.59, 83.7, "Prioridad Media-Alta (P2)", 0.75, "En Ejecución Activa", "En planificación del piloto: reuniones con el proveedor WAS-Veolia", "", "", "", "", "", "", "", "", ""], ["PRY-023", "REPARACIÓN DE BUZONES CON HDPE - \"Sistema de protección de concreto revestido con polietileno en camara de aguas servidas\"", "4TO TRIM 2025", "Culminado", "Antonio Medrano Rivera", "EOMR-AV, EIIN", "2025-08-17", "2025-12-03", "OE5 Modernizar la gestión empresarial y transformación digital / OE2 Lograr la sostenibilidad operacional con una actitud proactiva y resiliente ante el cambio climático y la gestión de desastres", 2.58, 2.62, 2.47, 2.5, 84.5, "Prioridad Media-Alta (P2)", 1, "Piloto Culminado con Informe", "Concluido. En base al análisis y conclusiones se recomienda ampliar el uso del HDPE CPL como protección del concreto en buzones de alcantarillado sanitario en los Equipos de Operación y Mantenimiento de Redes y asi evitar altos costos por reparación de buzones por desgaste a la barasion y carbonatación.\nLa Gerencia de Desarrollo e Investigación, en coordinación con el EIIN, deberá asegurar que en los nuevos procesos de selección de las Gerencias de Servicios (EOMR’s) referidos a Servicios de Mantenimiento de Redes de Alcantarillado relacionado a la actividad “Rehabilitación de buzones de alcantarillado” se incluyan en los Términos de Referencia la metodología de uso y aplicación del material de HDPE para las repaciones de paredes de buzones, ello como parte del proceso de escalamiento, esta labor formará parte del monitoreo y/o seguimiento de proyectos de innovación culminados exitosamente.", "", "", "", "", "", "", "", "", ""], ["PRY-024", "AQUACONTROL 360 - Plataforma alterna de monitoreo, control y análisis de datos utilizando Python para la operación del SCADA Lima Norte I", "4TO TRIM 2025", "Culminado", "Walter Molina Peralta", "EDP, EOMR-C, ETIC, EIIN", "2025-10-01", "2025-12-24", "OE5 Modernizar la gestión empresarial y transformación digital", 2.61, 2.62, 2.32, 2.69, 86.2, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Concluido. \nA partir de los resultados obtenidos en el piloto, la plataforma alterna validada presenta condiciones favorables para su escalamiento hacia otras zonas operativas de SEDAPAL. Su compatibilidad, estabilidad y capacidad de despliegue en múltiples equipos permiten proyectar su adopción progresiva como herramienta de apoyo al monitoreo y análisis operativo del SCADA en entornos donde existen limitaciones de licenciamiento o alta demanda de acceso a la información. El proceso de ampliación deberá desarrollarse incorporando evaluaciones técnicas y funcionales locales que aseguren su correcta adaptación a las particularidades operativas de cada ámbito.\n\nAsimismo, el proyecto ofrece potencial para su adaptación y evolución como iniciativa I+D+i, mediante la incorporación de nuevas funcionalidades de analítica avanzada, visualización, integración con modelos y desarrollo de módulos predictivos orientados al soporte de decisiones operativas. Este enfoque permitirá consolidar la plataforma como un activo tecnológico institucionalizable, sostenible y replicable, contribuyendo al fortalecimiento de las capacidades internas de innovación y transformación digital de la empresa.\n\nLa Gerencia de Desarrollo e Investigación, en coordinación con el EIIN, deberá asegurar los recursos necesarios (presupuestales y personal) y acompañar a las áreas usuarias operativas responsables de la operación y mantenimiento de las redes secundarias de agua potable como son los EOMR’s de las Gerencias de Servicios Sur, Centro y Norte, para que incorporen nuevas estaciones en la plataforma AQUACONTROL 360, ello como parte del proceso de escalamiento, esta labor formará parte del monitoreo y/o seguimiento de proyectos de innovación culminados exitosamente.", "", "", "", "", "", "", "", "", ""], ["PRY-025", "LUMINARIAS LED - “Prueba de eficiencia energética mediante  luminarias LED en las oficinas del Equipo Servicios y Clientes Especiales de  SEDAPAL", "4TO TRIM 2025", "Culminado", "Christian Antonio De La Cruz Aquije", "ESCE, EA-C, EIIN", "2025-10-27", "2025-12-05", "OE5 Modernizar la gestión empresarial y transformación digital", 2.61, 2.62, 2.7, 2.81, 90.3, "Prioridad Alta (P1)", 1, "Piloto Culminado con Informe", "Piloto de Innovación concluido.\nEn base a la evaluación realizada en el presente informe se recomienda ampliar el uso de luminarias LED en otros Equipos de SEDAPAL, en donde aún esten utilizándose luminarias tipo fluorescente, toda vez que, mediante el presente informe se han demostrado los beneficios de esta tecnología.\nEl EIIN, acompañará a las áreas usuarias responsables de la operación y mantenimiento de las \nluminarias en ambientes cerrados como son los Equipos de Administración Sur, Centro, Norte y \nAdministración y Conservación de las Gerencias de Servicios Sur, Centro, Norte, y de Logística y \nSevicios para que incluyan en sus términos de referencia de sus servicios la incorporación de las \nluminiarias LED, ello como parte del proceso de escalamiento, esta labor formará parte del \nmonitoreo y/o seguimiento de proyectos de innovación culminados exitosamente.", "", "", "", "", "", "", "", "", ""], ["PRY-026", "NEWA 2", "4TO TRIM 2026", "En proceso", "Miguel Angel Egusquiza Cordova", "EIIN", "2025-09-01", "2027-08-31", "OE5 Modernizar la gestión empresarial y transformación digital", 2.42, 2.62, 2.62, 2.35, 82.4, "Prioridad Media-Alta (P2)", 0.45, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-027", "Válvula antifraude", "1ER TRIM 2026", "En proceso", "Antonio Medrano Rivera", "EIIN", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.1, 2.62, 3, 2.15, 80.1, "Prioridad Media-Alta (P2)", 0.7, "En Ejecución Activa", "En seguimiento técnico por EIIN.", "", "", "", "", "", "", "", "", ""], ["PRY-028", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-029", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-030", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-031", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-032", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-033", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-034", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-035", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-036", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-037", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-038", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-039", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-040", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""], ["PRY-041", "Nuevo Proyecto de I+D+i", "1ER TRIM 2026", "En proceso", "EIIN", "EIIN - Área Usuaria", "2026-01-15", "2026-12-15", "OE5 Modernizar la gestión empresarial y transformación digital", 2.62, 2.62, 2.62, 2.62, 87.3, "Prioridad Alta (P1)", 0.1, "En Ejecución", "Registrado según procedimiento GDIPR0088.", "", "", "", "", "", "", "", "", ""]], "2_Seleccion_Iniciativas_P1_P4": [["SEDAPAL - MATRIZ DE SELECCIÓN Y PRIORIZACIÓN DE INICIATIVAS DE I+D+i (ANEXO N° 02 - GDIPR0088)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], ["ID", "Descripción de la Iniciativa / Necesidad (GDIFO0038)", "Proponente / Área Usuaria", "Fecha Registro", "C1: Impacto Social y Ambiental (20%)", "C2: Alineación Estratégica (20%)", "C3: Innovación (20%)", "C4: Impacto Operativo y Económico (40%)", "Puntaje Anexo 02 (0-100)", "Dictamen EIIN / Comité", "sub1.1", "sub1.2", "sub2.1", "sub3.1", "sub3.2", "sub3.3", "sub4.1", "sub4.2", "sub4.3"], ["INI-001", "IA aplicada a la Supervisión y Análisis de Imágenes a Gran Escala", "Ricardo Jimenez Prada", "12/03/2025", 2.71, 2.85, 2.62, 2.73, 90.9, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""], ["INI-002", "Análisis de Datos Mediante la Suavización Exponencial", "Ricardo Jimenez Prada", "12/03/2025", 2.46, 2.47, 2.7, 2.54, 84.7, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""], ["INI-003", "LORA - Telemetría IoT de Largo Alcance en Redes", "Jesus Martin Valer Minaya", "14/03/2025", 2.7, 2.78, 2.55, 2.62, 88.5, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""], ["INI-004", "AQUATURBINER - Proyecto de Microturbina", "Jairo Elvin Fernandez Davila", "19/03/2025", 2.76, 2.93, 2.62, 2.67, 91, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""], ["INI-005", "Implementación de soluciones de Inteligencia Artificial en el EC-SJL", "Raul Hans Barrera", "21/04/2025", 2.62, 2.7, 2.78, 2.67, 89.6, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""], ["INI-006", "Innovación en Gestión y Monitoreo de Expedientes por Centro de Servicio", "Alfredo Mendoza Condezo", "25/04/2025", 2.89, 3, 2.93, 2.88, 97.2, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""], ["INI-007", "Plataforma Integral Para Registro y Seguimiento de Solicitudes de Factibilidad", "Alfredo Mendoza Condezo", "28/04/2025", 2.89, 2.93, 2.85, 2.88, 96.2, "APROBADA PARA PORTAFOLIO", "", "", "", "", "", "", "", "", ""]], "3_Config_Anexo02_Rubrica": [["ANEXO N° 02 (GDIPR0088 Rev.01): MÓDULO DE CONFIGURACIÓN DE CRITERIOS, SUBCRITERIOS, PESOS Y RÚBRICA DE PUNTAJES (0 A 3 PUNTOS)", "", "", "", "", "", "", "", "", ""], ["Fórmula Oficial de Puntaje Ponderado (0-100): Suma(Puntaje_Subcriterio [0 a 3] * Peso_Subcriterio [%]) / 3  |  Nota TRI: Servicio periódico mayor al vigente = 0 pts; menor = 3 pts.", "", "", "", "", "", "", "", "", ""], ["", "", "", "", "", "", "", "", "", ""], ["Cód. Criterio", "Criterio Principal (Anexo 02)", "Peso Criterio (%)", "Cód. Subcriterio", "Subcriterio (Anexo 02)", "Peso Subcriterio (%)", "3 Puntos (Alto)", "2 Puntos (Medio)", "1 Punto (Bajo)", "0 Puntos (Nulo)"], ["C1", "1. Impacto social y ambiental", 20, "1.1", "Beneficio al usuario: mejora en la calidad, continuidad o satisfacción del servicio", 10, "Genera un beneficio significativo y sostenible para una gran cantidad de usuarios o la comunidad.", "Mejora clara en la satisfacción o atención de los usuarios.", "Beneficio indirecto o limitado a un grupo reducido de usuarios.", "No se identifica beneficio o mejora tangible para los usuarios."], ["C1", "1. Impacto social y ambiental", 20, "1.2", "Sostenibilidad y ambiente: contribución a la sostenibilidad o reducción de impactos ambientales", 10, "Genera mejoras medibles en sostenibilidad o reducción de impactos ambientales.", "Evidencia contribución ambiental o de sostenibilidad.", "Aporte marginal o no verificable.", "No aporta a sostenibilidad."], ["C2", "2. Alineación estratégica", 20, "2.1", "Relación con objetivos institucionales: coherencia con PEI, POI o planes de gestión", 20, "Contribuye directamente al cumplimiento de metas o indicadores institucionales.", "Relación clara con los objetivos estratégicos.", "Relación parcial o indirecta.", "No guarda relación con los objetivos estratégicos."], ["C3", "3. Innovación", 20, "3.1", "Creatividad: uso de ideas, métodos o herramientas innovadoras o emergentes", 10, "Propone un enfoque altamente creativo o disruptivo.", "Integra nuevos métodos o herramientas relevantes.", "Incorpora algunos elementos creativos.", "No se evidencia innovación."], ["C3", "3. Innovación", 20, "3.2", "Originalidad: grado de novedad frente a soluciones existentes", 5, "Introduce una solución inédita o pionera en el sector.", "Propone una solución nueva dentro de la empresa.", "Modifica o combina elementos existentes.", "Reproduce prácticas conocidas."], ["C3", "3. Innovación", 20, "3.3", "Pertinencia: responde a una necesidad real y vigente", 5, "Resuelve una necesidad prioritaria con sustento técnico.", "Responde claramente a una necesidad actual.", "Parcialmente vinculada a una necesidad.", "No responde a una necesidad concreta."], ["C4", "4. Impacto operativo y económico", 40, "4.1", "Eficiencia operativa: mejora de procesos, reducción de tiempos u optimización de recursos", 10, "Genera mejoras sustanciales y sostenibles en productividad, control o automatización de procesos críticos.", "Optimiza recursos o tiempos en procesos relevantes o de alta carga operativa.", "Mejora menor o localizada, con impacto parcial.", "No genera mejora operativa o no se evidencia."], ["C4", "4. Impacto operativo y económico", 40, "4.2", "Impacto económico medido a través del Tiempo de Retorno de la Inversión (TRI)*", 10, "TRI <= 2 años (o servicio periódico de menor costo que el vigente)", "2 años < TRI <= 3 años", "3 años < TRI <= 4 años", "TRI > 4 años (o servicio periódico de mayor costo que el vigente)"], ["C4", "4. Impacto operativo y económico", 40, "4.3", "Impacto económico medido a través del ahorro o beneficio anual neto", 20, "Ahorro o beneficio anual neto >= S/ 500k", "S/ 100k <= Ahorro o beneficio anual neto < S/ 500k", "S/ 50k <= Ahorro o beneficio anual neto < S/ 100k", "Ahorro o beneficio anual neto < S/ 50k"]], "4_Diccionario": [["7.4.1", "7.4.2", "7.4.3"], ["por defecto", "gemelo", "investigacion"], ["prueba", "aplicativo", "cloruro"], ["piloto", "plataforma", ""]]};
+
+function getSharePointUrl() {
+  return localStorage.getItem(CFG_SP_URL_KEY) || DEFAULT_SHAREPOINT_URL;
+}
+
+function getNetlifyBaseUrl() {
+  return (localStorage.getItem(CFG_NETLIFY_KEY) || DEFAULT_NETLIFY_BASE_URL || "").replace(/\/+$/, "");
+}
+
+function openCloudConfigModal() {
+  document.getElementById("cfg-sp-url").value = getSharePointUrl();
+  document.getElementById("cfg-netlify-url").value = getNetlifyBaseUrl();
+  document.getElementById("cloud-config-modal").classList.add("open");
+}
+
+function closeCloudConfigModal() {
+  document.getElementById("cloud-config-modal").classList.remove("open");
+}
+
+function saveCloudConfigAndSync() {
+  const spUrl = document.getElementById("cfg-sp-url").value.trim() || DEFAULT_SHAREPOINT_URL;
+  const netUrl = document.getElementById("cfg-netlify-url").value.trim().replace(/\/+$/, "");
+  localStorage.setItem(CFG_SP_URL_KEY, spUrl);
+  localStorage.setItem(CFG_NETLIFY_KEY, netUrl);
+  closeCloudConfigModal();
+  syncFromSharePoint(true);
+}
+
+function parseAllSheetsData(sheetsMap) {
+  const names = Object.keys(sheetsMap || {});
+  if (names.length === 0) return false;
+
+  // 1. Hoja 1: 1_Portafolio_y_Priorizacion (Fila 4 -> índice 3, 27 Columnas A–AA)
+  const sheet1Name = names.find(n => n.includes("1_Portafolio")) || names[0];
+  if (sheet1Name && Array.isArray(sheetsMap[sheet1Name])) {
+    const rows1 = sheetsMap[sheet1Name];
+    let hIdx1 = 3;
+    if (!rows1[hIdx1] || !rows1[hIdx1].some(c => String(c).toLowerCase().includes("código") || String(c).toLowerCase().includes("título"))) {
+      for (let i = 0; i < Math.min(10, rows1.length); i++) {
+        if ((rows1[i] || []).some(c => String(c).toLowerCase().includes("código") || String(c).toLowerCase().includes("título"))) {
+          hIdx1 = i; break;
+        }
+      }
+    }
+
+    if (hIdx1 > 0) SHEET1_TOP_ROWS = rows1.slice(0, hIdx1);
+    if (rows1[hIdx1] && rows1[hIdx1].length >= 18) {
+      const importedH1 = rows1[hIdx1].slice(0, 27);
+      while (importedH1.length < 27) importedH1.push(SHEET1_HEADERS[importedH1.length]);
+      SHEET1_HEADERS = importedH1;
+    }
+
+    const headers1 = (rows1[hIdx1] || []).map(h => String(h).trim().toLowerCase());
+    const findCol = (kw, fallback) => {
+      const found = headers1.findIndex(h => kw.some(k => h.includes(k)));
+      return found >= 0 ? found : fallback;
+    };
+
+    const cId = findCol(["código", "codigo"], 0);
+    const cTit = findCol(["título", "titulo", "proyecto"], 1);
+    const cProg = findCol(["programación", "programacion"], 2);
+    const cEst = findCol(["estado"], 3);
+    const cLid = findCol(["líder", "lider"], 4);
+    const cPart = findCol(["partes"], 5);
+    const cIni = findCol(["inicio"], 6);
+    const cFin = findCol(["fin"], 7);
+    const cAlinTxt = findCol(["alineamiento estratégico", "estratégico"], 8);
+    const cC1 = findCol(["c1"], 9);
+    const cC2 = findCol(["c2"], 10);
+    const cC3 = findCol(["c3"], 11);
+    const cC4 = findCol(["c4"], 12);
+    const cPunt = findCol(["puntaje"], 13);
+    const cPrio = findCol(["prioridad"], 14);
+    const cAv = findCol(["avance"], 15);
+    const cDec = findCol(["decisión", "decision", "etapa"], 16);
+    const cSit = findCol(["situación", "situacion", "sustento", "activos"], 17);
+
+    const cS11 = findCol(["1.1"], 18);
+    const cS12 = findCol(["1.2"], 19);
+    const cS21 = findCol(["2.1"], 20);
+    const cS31 = findCol(["3.1"], 21);
+    const cS32 = findCol(["3.2"], 22);
+    const cS33 = findCol(["3.3"], 23);
+    const cS41 = findCol(["4.1"], 24);
+    const cS42 = findCol(["4.2"], 25);
+    const cS43 = findCol(["4.3"], 26);
+
+    const newProjects = [];
+    let counter = 1;
+    for (let r = hIdx1 + 1; r < rows1.length; r++) {
+      const row = rows1[r];
+      if (!row || row.length === 0) continue;
+      const titulo = String(row[cTit] !== undefined ? row[cTit] : "").trim();
+      if (!titulo || titulo.length < 2) continue;
+
+      const c1Base = !isNaN(parseFloat(row[cC1])) ? parseFloat(row[cC1]) : 2.75;
+      const c2Base = !isNaN(parseFloat(row[cC2])) ? parseFloat(row[cC2]) : 3.00;
+      const c3Base = !isNaN(parseFloat(row[cC3])) ? parseFloat(row[cC3]) : 2.70;
+      const c4Base = !isNaN(parseFloat(row[cC4])) ? parseFloat(row[cC4]) : 2.75;
+
+      const s11 = clampSub(row[cS11], c1Base);
+      const s12 = clampSub(row[cS12], c1Base);
+      const s21 = clampSub(row[cS21], c2Base);
+      const s31 = clampSub(row[cS31], c3Base);
+      const s32 = clampSub(row[cS32], c3Base);
+      const s33 = clampSub(row[cS33], c3Base);
+      const s41 = clampSub(row[cS41], c4Base);
+      const s42 = clampSub(row[cS42], c4Base);
+      const s43 = clampSub(row[cS43], c4Base);
+
+      const hasSubCols = [row[cS11], row[cS12], row[cS21], row[cS31], row[cS32], row[cS33], row[cS41], row[cS42], row[cS43]]
+        .some(v => v !== "" && v !== undefined && !isNaN(parseFloat(v)));
+
+      const derived = calcC1234FromSubcriteria({ s11, s12, s21, s31, s32, s33, s41, s42, s43 });
+      const c1Val = hasSubCols ? derived.c1 : c1Base;
+      const c2Val = hasSubCols ? derived.c2 : c2Base;
+      const c3Val = hasSubCols ? derived.c3 : c3Base;
+      const c4Val = hasSubCols ? derived.c4 : c4Base;
+
+      const calcScore = calcScoreAnexo02(c1Val, c2Val, c3Val, c4Val);
+      const puntajeExcel = (!hasSubCols && !isNaN(parseFloat(row[cPunt]))) ? parseFloat(row[cPunt]) : calcScore;
+
+      let rawAv = row[cAv];
+      let avVal = 70;
+      if (rawAv !== "" && rawAv !== undefined) {
+        let numAv = parseFloat(String(rawAv).replace('%', ''));
+        if (!isNaN(numAv)) avVal = numAv <= 1 ? Math.round(numAv * 100) : Math.round(numAv);
+      }
+
+      const estadoLimpio = normalizeEstado(row[cEst]);
+
+      newProjects.push({
+        num: counter,
+        id: String(row[cId] || `PRY-${String(counter).padStart(3, '0')}`).trim(),
+        titulo: titulo,
+        programacion: String(row[cProg] || "1ER TRIM 2026").trim().replace('1ER TRIME 2026', '1ER TRIM 2026'),
+        estado: estadoLimpio,
+        lider: String(row[cLid] || "EIIN").trim(),
+        partes: String(row[cPart] || "EIIN").trim(),
+        fecha_inicio: String(row[cIni] || "2026-01-15").slice(0, 10),
+        fecha_fin: String(row[cFin] || "2026-12-15").slice(0, 10),
+        alin_estrategico: String(row[cAlinTxt] || "").trim(),
+        c1: c1Val, c2: c2Val, c3: c3Val, c4: c4Val,
+        s11, s12, s21, s31, s32, s33, s41, s42, s43,
+        puntaje: puntajeExcel,
+        prioridad: String(row[cPrio] || getPrioridadLabel(puntajeExcel)).trim(),
+        avance: avVal,
+        decision_comite: String(row[cDec] || (estadoLimpio === 'Escalado' ? 'Aprobado - Escalado' : (estadoLimpio === 'Culminado' ? 'Piloto Culminado con Informe' : 'En Ejecución'))).trim(),
+        situacion_col_s: String(row[cSit] || "").trim()
+      });
+      counter++;
+    }
+    PROYECTOS = newProjects;
+    if (PROYECTOS.length > 0) selectedProjectNum = PROYECTOS[0].num;
+  }
+
+  // 2. Hoja 2: 2_Seleccion_Iniciativas_P1_P4 (Fila 3 -> índice 2, 19 Columnas A–S)
+  const sheet2Name = names.find(n => n.includes("2_Seleccion")) || names[1];
+  if (sheet2Name && Array.isArray(sheetsMap[sheet2Name])) {
+    const rows2 = sheetsMap[sheet2Name];
+    let hIdx2 = 2;
+    if (!rows2[hIdx2] || !rows2[hIdx2].some(c => String(c).toLowerCase().includes("iniciativa") || String(c).toLowerCase().includes("descripción"))) {
+      for (let i = 0; i < Math.min(8, rows2.length); i++) {
+        if ((rows2[i] || []).some(c => String(c).toLowerCase().includes("iniciativa") || String(c).toLowerCase().includes("proponente"))) {
+          hIdx2 = i; break;
+        }
+      }
+    }
+
+    if (hIdx2 > 0) SHEET2_TOP_ROWS = rows2.slice(0, hIdx2);
+    if (rows2[hIdx2] && rows2[hIdx2].length >= 10) {
+      const importedH2 = rows2[hIdx2].slice(0, 19);
+      while (importedH2.length < 19) importedH2.push(SHEET2_HEADERS[importedH2.length]);
+      SHEET2_HEADERS = importedH2;
+    }
+
+    const headers2 = (rows2[hIdx2] || []).map(h => String(h).trim().toLowerCase());
+    const findCol2 = (kw, fallback) => {
+      const found = headers2.findIndex(h => kw.some(k => h.includes(k)));
+      return found >= 0 ? found : fallback;
+    };
+
+    const iS11 = findCol2(["1.1"], 10);
+    const iS12 = findCol2(["1.2"], 11);
+    const iS21 = findCol2(["2.1"], 12);
+    const iS31 = findCol2(["3.1"], 13);
+    const iS32 = findCol2(["3.2"], 14);
+    const iS33 = findCol2(["3.3"], 15);
+    const iS41 = findCol2(["4.1"], 16);
+    const iS42 = findCol2(["4.2"], 17);
+    const iS43 = findCol2(["4.3"], 18);
+
+    const newInis = [];
+    let ictr = 1;
+    for (let r = hIdx2 + 1; r < rows2.length; r++) {
+      const row = rows2[r];
+      if (!row || row.length === 0) continue;
+      const tit = String(row[1] !== undefined ? row[1] : "").trim();
+      if (!tit || tit.length < 2) continue;
+
+      const a1Base = !isNaN(parseFloat(row[4])) ? parseFloat(row[4]) : 2.80;
+      const a2Base = !isNaN(parseFloat(row[5])) ? parseFloat(row[5]) : 3.00;
+      const a3Base = !isNaN(parseFloat(row[6])) ? parseFloat(row[6]) : 2.75;
+      const a4Base = !isNaN(parseFloat(row[7])) ? parseFloat(row[7]) : 2.80;
+
+      const s11 = clampSub(row[iS11], a1Base);
+      const s12 = clampSub(row[iS12], a1Base);
+      const s21 = clampSub(row[iS21], a2Base);
+      const s31 = clampSub(row[iS31], a3Base);
+      const s32 = clampSub(row[iS32], a3Base);
+      const s33 = clampSub(row[iS33], a3Base);
+      const s41 = clampSub(row[iS41], a4Base);
+      const s42 = clampSub(row[iS42], a4Base);
+      const s43 = clampSub(row[iS43], a4Base);
+
+      const hasSub2 = [row[iS11], row[iS12], row[iS21], row[iS31], row[iS32], row[iS33], row[iS41], row[iS42], row[iS43]]
+        .some(v => v !== "" && v !== undefined && !isNaN(parseFloat(v)));
+
+      const derived2 = calcC1234FromSubcriteria({ s11, s12, s21, s31, s32, s33, s41, s42, s43 });
+      const a1 = hasSub2 ? derived2.c1 : a1Base;
+      const a2 = hasSub2 ? derived2.c2 : a2Base;
+      const a3 = hasSub2 ? derived2.c3 : a3Base;
+      const a4 = hasSub2 ? derived2.c4 : a4Base;
+
+      const calcSc = calcScoreAnexo02(a1, a2, a3, a4);
+      const scExcel = (!hasSub2 && !isNaN(parseFloat(row[8]))) ? parseFloat(row[8]) : calcSc;
+
+      newInis.push({
+        num: ictr,
+        id: String(row[0] || `INI-${String(ictr).padStart(3, '0')}`).trim(),
+        titulo: tit,
+        proponente: String(row[2] || "EIIN").trim(),
+        fecha: String(row[3] || "").trim(),
+        c1: a1, c2: a2, c3: a3, c4: a4,
+        s11, s12, s21, s31, s32, s33, s41, s42, s43,
+        puntaje: scExcel,
+        estado_eval: String(row[9] || (scExcel >= 75 ? "APROBADA PARA PORTAFOLIO" : "EN REVISIÓN")).trim()
+      });
+      ictr++;
+    }
+    INICIATIVAS = newInis;
+    if (INICIATIVAS.length > 0) selectInitiativeForCalc(0);
+  }
+
+  // 3. Hoja 3: 3_Config_Anexo02_Rubrica
+  const sheet3Name = names.find(n => n.includes("3_Config") || n.toLowerCase().includes("rubrica")) || names[2];
+  if (sheet3Name && Array.isArray(sheetsMap[sheet3Name]) && sheetsMap[sheet3Name].length >= 5) {
+    SHEET3_ROWS = sheetsMap[sheet3Name];
+  }
+
+  // 4. Hoja 4: 4_Diccionario
+  const sheet4Name = names.find(n => limpiarTextoDic(n).includes("diccionario"));
+  if (sheet4Name && Array.isArray(sheetsMap[sheet4Name])) {
+    cargarDiccionarioDesdeFilas(sheetsMap[sheet4Name]);
+  }
+
+  renderAllViews();
+  return true;
+}
+
+function cargarDiccionarioDesdeFilas(rows) {
+  if (!Array.isArray(rows) || !rows.length) return;
+  const codigos = rows[0] || [];
+  const estilos = {
+    "7.4.1": { label: "7.4.1 Prueba Piloto", cls: "rt-piloto" },
+    "7.4.2": { label: "7.4.2 Nueva Solución (PMV/DT)", cls: "rt-nueva" },
+    "7.4.3": { label: "7.4.3 Inv. Aplicada", cls: "rt-inv" }
+  };
+
+  const parsed = [];
+  for (let col = 0; col < codigos.length; col++) {
+    const codigo = String(codigos[col] || "").trim();
+    if (!codigo) continue;
+
+    const palabras = [];
+    let esPorDefecto = false;
+
+    for (let fila = 1; fila < rows.length; fila++) {
+      const valor = limpiarTextoDic(rows[fila] ? rows[fila][col] : "");
+      if (!valor) continue;
+      if (valor.includes("por defecto")) {
+        esPorDefecto = true;
+      } else {
+        palabras.push(valor);
+      }
+    }
+
+    const estilo = estilos[codigo] || { label: codigo, cls: "rt-piloto" };
+    parsed.push({
+      codigo,
+      label: estilo.label,
+      cls: estilo.cls,
+      esPorDefecto,
+      palabras
+    });
+  }
+
+  if (parsed.length > 0) {
+    DICCIONARIO_4 = parsed;
+  }
+}
+
+function workbookToSheetsMap(workbook) {
+  const map = {};
+  workbook.SheetNames.forEach(name => {
+    map[name] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: "" });
+  });
+  return map;
+}
+
+function setCloudStatus(type, topText, sideText) {
+  const pill = document.getElementById("top-pill");
+  const side = document.getElementById("sync-status");
+  if (pill) {
+    pill.classList.toggle("synced", type === "ok");
+    pill.innerHTML = topText;
+  }
+  if (side) {
+    side.innerHTML = sideText;
+  }
+}
+
+async function syncFromSharePoint(isManual = false) {
+  const btn = document.getElementById("btn-sp-sync");
+  if (btn) btn.disabled = true;
+
+  const spUrl = getSharePointUrl();
+  const netlifyBase = getNetlifyBaseUrl();
+  const isHttp = window.location.protocol === "http:" || window.location.protocol === "https:";
+  const candidateUrls = [];
+
+  // 1. Si corre en Netlify (o servidor con Netlify Functions)
+  if (isHttp && !netlifyBase) {
+    candidateUrls.push(`/.netlify/functions/sharepoint-excel?url=${encodeURIComponent(spUrl)}&t=${Date.now()}`);
+  }
+  // 2. Si el usuario configuró su URL de Netlify (funciona perfecto desde HTML local file://)
+  if (netlifyBase) {
+    candidateUrls.push(`${netlifyBase}/.netlify/functions/sharepoint-excel?url=${encodeURIComponent(spUrl)}&t=${Date.now()}`);
+  }
+  // 3. Intento directo al enlace SharePoint con &download=1 (útil en entornos con sesión/CORS habilitado)
+  const sep = spUrl.includes("?") ? "&" : "?";
+  candidateUrls.push(`${spUrl}${sep}download=1`);
+
+  setCloudStatus(
+    "loading",
+    `<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando con SharePoint...`,
+    `<strong>Estado:</strong> Consultando SharePoint EIIN...`
+  );
+
+  let synced = false;
+  let lastReason = "";
+
+  for (const targetUrl of candidateUrls) {
+    try {
+      const resp = await fetch(targetUrl, { cache: "no-store" });
+      const contentType = (resp.headers.get("content-type") || "").toLowerCase();
+
+      if (!resp.ok) {
+        if (contentType.includes("application/json")) {
+          const errJson = await resp.json().catch(() => ({}));
+          lastReason = errJson.message || errJson.error || `HTTP ${resp.status}`;
+        } else {
+          lastReason = `HTTP ${resp.status}`;
+        }
+        continue;
+      }
+
+      const buffer = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      // Validar firma mágica ZIP/XLSX ("PK") para evitar parsear páginas HTML de login Microsoft
+      if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4B) {
+        lastReason = "SharePoint solicitó inicio de sesión (configura el enlace como 'Cualquier persona con el vínculo puede ver').";
+        continue;
+      }
+
+      const workbook = XLSX.read(bytes, { type: "array" });
+      const sheetsMap = workbookToSheetsMap(workbook);
+      if (parseAllSheetsData(sheetsMap)) {
+        try {
+          localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify({
+            savedAt: new Date().toLocaleString("es-PE"),
+            sheets: sheetsMap
+          }));
+        } catch (_) {}
+
+        const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+        setCloudStatus(
+          "ok",
+          `<i class="fa-solid fa-cloud-check"></i> SharePoint En Vivo (${PROYECTOS.length} Proy. | ${hora})`,
+          `<strong>Sincronizado en vivo:</strong> ${hora}<br>4_Diccionario activo (${DICCIONARIO_4.length} rutas)`
+        );
+        synced = true;
+        break;
+      }
+    } catch (err) {
+      lastReason = err && err.message ? err.message : "Bloqueo CORS/Red";
+    }
+  }
+
+  if (!synced) {
+    const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+    const modeLabel = isHttp ? "Netlify / Caché" : "Modo Local (Datos Integrados)";
+    setCloudStatus(
+      "ok",
+      `<i class="fa-solid fa-database"></i> ${modeLabel} (${PROYECTOS.length} Proy. | 4_Diccionario)`,
+      `<strong>Datos cargados:</strong> ${PROYECTOS.length} Proy. / ${INICIATIVAS.length} Inis<br><span style="color:#fbbf24;">${!isHttp && !netlifyBase ? "Tip: Configura tu URL de Netlify para sync en vivo local." : "Usando copia sincronizada."}</span>`
+    );
+    if (isManual) {
+      console.warn("Detalle sincronización SharePoint:", lastReason);
+      alert(
+        "Se mantienen los datos cargados del Excel oficial.\n\n" +
+        "Detalle de conexión en vivo: " + (lastReason || "No se pudo contactar al puente Netlify.") + "\n\n" +
+        "Verifica que:\n" +
+        "1. El enlace en SharePoint tenga permiso 'Cualquier persona con el vínculo puede ver'.\n" +
+        "2. Si estás en local, hayas pegado la URL de tu sitio Netlify en 'Configurar Enlace / Local'."
+      );
+    }
+  }
+
+  if (btn) btn.disabled = false;
+}
+
+window.onload = function() {
+  recalcFromIniSubcriteria();
+
+  // 1. Carga inmediata (0 ms) desde caché reciente o snapshot embebido del Excel
+  let loadedFromCache = false;
+  try {
+    const rawCache = localStorage.getItem(CACHE_STORAGE_KEY);
+    if (rawCache) {
+      const parsed = JSON.parse(rawCache);
+      if (parsed && parsed.sheets) {
+        loadedFromCache = parseAllSheetsData(parsed.sheets);
+      }
+    }
+  } catch (_) {}
+
+  if (!loadedFromCache) {
+    parseAllSheetsData(EMBEDDED_WORKBOOK_DATA);
+  }
+
+  // 2. Sincronización automática en segundo plano con SharePoint
+  syncFromSharePoint(false);
+
+  // 3. Auto-actualización silenciosa cada 5 minutos
+  setInterval(() => syncFromSharePoint(false), 5 * 60 * 1000);
+};
+
+</script>
+</body>
+</html>
