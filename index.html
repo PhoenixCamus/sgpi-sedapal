@@ -525,6 +525,9 @@
         <span id="user-display-name">Sin sesión</span>
         <span class="role-tag" id="user-display-role">--</span>
       </div>
+      <button type="button" class="btn-outline" onclick="openChangePasswordModal()" title="Cambiar mi contraseña">
+        <i class="fa-solid fa-key"></i> Cambiar Clave
+      </button>
       <button class="btn-logout" onclick="logoutUser()" title="Cerrar sesión">
         <i class="fa-solid fa-right-from-bracket"></i> Salir
       </button>
@@ -1280,6 +1283,52 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL CAMBIAR CONTRASEÑA (USUARIO LOGUEADO) ==================== -->
+<div class="modal-overlay" id="change-password-modal">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-head">
+      <div>
+        <h3 style="font-size:15px;"><i class="fa-solid fa-key"></i> Cambiar Mi Contraseña</h3>
+        <span style="font-size:11.5px; color:#93c5fd;">Actualización directa y encriptada en tu cuenta</span>
+      </div>
+      <button type="button" class="modal-close" onclick="closeChangePasswordModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="login-error" id="pw-modal-error"></div>
+      <div class="login-ok" id="pw-modal-ok"></div>
+      <form id="change-password-form" onsubmit="handleChangePasswordSubmit(event)">
+        <div class="login-field">
+          <label for="pw-current">Contraseña Actual</label>
+          <div class="login-input-wrap">
+            <i class="fa-solid fa-lock field-ico"></i>
+            <input type="password" id="pw-current" class="login-input" placeholder="Ingresa tu contraseña actual" autocomplete="current-password" required>
+          </div>
+        </div>
+        <div class="login-field">
+          <label for="pw-new">Nueva Contraseña (mín. 6 caracteres)</label>
+          <div class="login-input-wrap">
+            <i class="fa-solid fa-key field-ico"></i>
+            <input type="password" id="pw-new" class="login-input" placeholder="Ingresa tu nueva contraseña" minlength="6" autocomplete="new-password" required>
+          </div>
+        </div>
+        <div class="login-field">
+          <label for="pw-confirm">Confirmar Nueva Contraseña</label>
+          <div class="login-input-wrap">
+            <i class="fa-solid fa-check-double field-ico"></i>
+            <input type="password" id="pw-confirm" class="login-input" placeholder="Repite la nueva contraseña" minlength="6" autocomplete="new-password" required>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button type="button" class="btn-outline" style="border-color:#64748b; color:#475569;" onclick="closeChangePasswordModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="btn-save-password">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar Nueva Clave
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -3071,6 +3120,115 @@ async function handleLoginSubmit(ev) {
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Ingresar al Sistema`;
+    }
+  }
+}
+
+
+// ============================================================================
+// CAMBIO DE CONTRASEÑA DEL USUARIO LOGUEADO
+// ============================================================================
+function openChangePasswordModal() {
+  if (!CURRENT_USER || !CURRENT_USER.token) {
+    alert("Primero debes iniciar sesión.");
+    return;
+  }
+  const errEl = document.getElementById("pw-modal-error");
+  const okEl = document.getElementById("pw-modal-ok");
+  if (errEl) errEl.classList.remove("show");
+  if (okEl) okEl.classList.remove("show");
+  document.getElementById("pw-current").value = "";
+  document.getElementById("pw-new").value = "";
+  document.getElementById("pw-confirm").value = "";
+  document.getElementById("change-password-modal").classList.add("open");
+  document.getElementById("pw-current").focus();
+}
+
+function closeChangePasswordModal() {
+  document.getElementById("change-password-modal").classList.remove("open");
+}
+
+function showPwModalError(msg) {
+  const errEl = document.getElementById("pw-modal-error");
+  const okEl = document.getElementById("pw-modal-ok");
+  if (okEl) okEl.classList.remove("show");
+  if (errEl) {
+    errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${esc(msg)}`;
+    errEl.classList.add("show");
+  }
+}
+
+function showPwModalOk(msg) {
+  const errEl = document.getElementById("pw-modal-error");
+  const okEl = document.getElementById("pw-modal-ok");
+  if (errEl) errEl.classList.remove("show");
+  if (okEl) {
+    okEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${esc(msg)}`;
+    okEl.classList.add("show");
+  }
+}
+
+async function handleChangePasswordSubmit(ev) {
+  ev.preventDefault();
+  if (!CURRENT_USER || !CURRENT_USER.token) {
+    showPwModalError("Sesión no válida. Vuelve a iniciar sesión.");
+    return;
+  }
+
+  const curInp = document.getElementById("pw-current");
+  const newInp = document.getElementById("pw-new");
+  const confInp = document.getElementById("pw-confirm");
+  const btn = document.getElementById("btn-save-password");
+
+  const currentPassword = (curInp.value || "").trim();
+  const newPassword = (newInp.value || "").trim();
+  const confirmPassword = (confInp.value || "").trim();
+
+  if (newPassword.length < 6) {
+    showPwModalError("La nueva contraseña debe tener al menos 6 caracteres.");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    showPwModalError("La nueva contraseña y su confirmación no coinciden.");
+    return;
+  }
+  if (currentPassword === newPassword) {
+    showPwModalError("La nueva contraseña debe ser diferente a la actual.");
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Actualizando...`;
+  }
+
+  try {
+    const res = await callGasApi({
+      action: "changePassword",
+      token: CURRENT_USER.token,
+      currentPassword: currentPassword,
+      newPassword: newPassword
+    });
+
+    curInp.value = "";
+    newInp.value = "";
+    confInp.value = "";
+
+    if (!res || !res.ok) {
+      showPwModalError((res && res.error) || "No se pudo cambiar la contraseña.");
+      return;
+    }
+
+    showPwModalOk("Contraseña actualizada correctamente.");
+    setTimeout(() => {
+      closeChangePasswordModal();
+    }, 900);
+  } catch (err) {
+    showPwModalError(err.message || "Error al actualizar la contraseña.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Nueva Clave`;
     }
   }
 }
